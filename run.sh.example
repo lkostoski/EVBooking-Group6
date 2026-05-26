@@ -1,0 +1,18 @@
+#!/bin/bash
+# Copy this file to run.sh and fill in the keys (get them from the group chat).
+# run.sh is gitignored so your keys won't be pushed.
+set -e
+
+PORT=8083
+MAPS_KEY="YOUR_GOOGLE_MAPS_KEY"
+CLIENT_ID="YOUR_GOOGLE_OAUTH_CLIENT_ID"
+
+# Kill anything already on the port
+PID=$(lsof -ti :$PORT 2>/dev/null) && [ -n "$PID" ] && kill $PID && echo "Stopped old server (PID $PID)"
+
+echo "Building..."
+mvn package -q
+
+echo "Starting server at http://localhost:$PORT"
+GOOGLE_MAPS_KEY=$MAPS_KEY GOOGLE_CLIENT_ID=$CLIENT_ID \
+  java -jar target/dependency/webapp-runner.jar --port $PORT target/ev-booking.war

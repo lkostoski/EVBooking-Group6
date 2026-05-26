@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body>
+<style>body { visibility: hidden; }</style>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="stations.html" class="navbar-brand">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 512 512" fill="white">
+          <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+          <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+          <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+        </svg>
+      </div>
+      <span class="logo-text">EV Booking</span>
+    </a>
+    <div class="navbar-links">
+      <a href="stations.html" class="nav-link">Stations</a>
+      <a href="bookings.html" class="nav-link">My Bookings</a>
+      <a href="admin.html" class="nav-link" id="nav-admin-link">Admin</a>
+    </div>
+    <div class="navbar-user">
+      <a href="profile.html" class="nav-profile-link">
+        <div class="nav-avatar" id="nav-avatar"></div>
+        <span class="nav-username" id="nav-username"></span>
+      </a>
+      <button class="btn btn-ghost btn-sm" id="nav-logout">Sign out</button>
+      <button id="nav-hamburger" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="nav-dropdown" class="nav-dropdown">
+    <a href="stations.html">Stations</a>
+    <a href="bookings.html">My Bookings</a>
+    <a href="admin.html" id="nav-dropdown-admin" style="display:none">Admin</a>
+    <a href="profile.html">Profile</a>
+    <div class="nav-dropdown-divider"></div>
+    <button id="nav-dropdown-logout" class="nav-dropdown-btn">Sign out</button>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div class="page-header">
+    <h2 id="page-title">My Bookings</h2>
+    <a href="stations.html" class="btn btn-primary btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New booking
+    </a>
+  </div>
+
+  <div id="alert-box"></div>
+
+  <div class="filter-bar">
+    <div class="filter-pills" id="filter-pills">
+      <button class="filter-pill active" data-filter="all">All</button>
+      <button class="filter-pill" data-filter="ACTIVE">Active</button>
+      <button class="filter-pill" data-filter="COMPLETED">Completed</button>
+      <button class="filter-pill" data-filter="CANCELLED">Cancelled</button>
+    </div>
+  </div>
+
+  <div id="bookings-container">
+    <div class="spinner-center">
+      <span class="spinner"></span>
+      <span style="color:var(--color-text-muted);font-size:13px">Loading bookings…</span>
+    </div>
+  </div>
+</div>
+
+<!-- Modify modal -->
+<div class="modal-backdrop hidden" id="modify-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Modify Booking</span>
+      <button class="modal-close" id="modify-close-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modify-alert"></div>
+      <div class="form-group">
+        <label class="form-label" for="mod-date">New Date</label>
+        <input type="date" id="mod-date" required>
+      </div>
+      <div id="mod-slots-wrap" style="margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modify-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="save-modify-btn" disabled>Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, showAlert, clearAlert, fmtTime, fmtDate, todayISO, esc } from './js/api.js?v=20260526';
+  import { requireAuth, setupNavbar, isAdmin } from './js/auth.js?v=20260526';
+
+(async () => {
+  if (!await requireAuth()) return;
+  setupNavbar();
+  document.body.style.visibility = 'visible';
+
+  if (isAdmin()) document.getElementById('page-title').textContent = 'All Bookings';
+
+  let allBookings        = [];
+  let currentFilter      = 'all';
+  let editingId          = null;
+  let editingConnectorId = null;
+  let modifySlot         = null;
+
+  const modDateInput  = document.getElementById('mod-date');
+  const slotsWrap     = document.getElementById('mod-slots-wrap');
+  const saveModifyBtn = document.getElementById('save-modify-btn');
+
+  modDateInput.min = todayISO();
+
+  // ── Modal helpers ──────────────────────────────────────────
+  const modifyModal = document.getElementById('modify-modal');
+  function openModify()  { modifyModal.classList.remove('hidden'); }
+  function closeModify() {
+    modifyModal.classList.add('hidden');
+    clearAlert('modify-alert');
+    slotsWrap.innerHTML = '';
+    modifySlot = null;
+    saveModifyBtn.disabled = true;
+  }
+  document.getElementById('modify-close-btn').addEventListener('click', closeModify);
+  document.getElementById('modify-cancel-btn').addEventListener('click', closeModify);
+  modifyModal.addEventListener('click', e => { if (e.target === modifyModal) closeModify(); });
+
+  // ── Slot fetching ──────────────────────────────────────────
+  async function fetchModSlots(date) {
+    modifySlot = null;
+    saveModifyBtn.disabled = true;
+    if (!date || !editingConnectorId) { slotsWrap.innerHTML = ''; return; }
+
+    slotsWrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading slots…</div>';
+
+    try {
+      const slots = await apiFetch(`api/connectors/${editingConnectorId}/slots?date=${date}`);
+      const n5 = t => (t || '').substring(0, 5);
+      const takenKeys = new Set(
+        (allBookings || [])
+          .filter(b => b.status === 'ACTIVE' &&
+                       +b.connectorId === +editingConnectorId &&
+                       b.date === date &&
+                       b.bookingId !== editingId)
+          .map(b => n5(b.startTime) + '-' + n5(b.endTime))
+      );
+      renderModSlots(slots || [], takenKeys);
+    } catch (err) {
+      slotsWrap.innerHTML = `<div class="alert alert-danger" style="margin-top:8px">${err.message}</div>`;
+    }
+  }
+
+  function renderModSlots(slots, takenKeys = new Set()) {
+    if (!slots.length) {
+      slotsWrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No available slots for this date.</p>';
+      return;
+    }
+
+    const n5 = t => (t || '').substring(0, 5);
+    const grid = document.createElement('div');
+    grid.className = 'slot-grid';
+    grid.style.marginTop = '10px';
+
+    const isToday = modDateInput.value === todayISO();
+    slots.forEach(slot => {
+      const taken   = takenKeys.has(n5(slot.startTime) + '-' + n5(slot.endTime));
+      const pastSlot = isToday && new Date(`${modDateInput.value}T${slot.startTime}`) <= new Date();
+      const unavailable = taken || pastSlot;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-btn';
+      if (unavailable) btn.classList.add('booked');
+      btn.textContent = fmtTime(slot.startTime) + ' – ' + fmtTime(slot.endTime);
+      btn.disabled = unavailable;
+      if (!unavailable) {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          modifySlot = slot;
+          saveModifyBtn.disabled = false;
+        });
+      }
+      grid.appendChild(btn);
+    });
+
+    slotsWrap.innerHTML = '';
+    const label = document.createElement('div');
+    label.className = 'form-label';
+    label.style.marginBottom = '6px';
+    label.textContent = 'Select a slot';
+    slotsWrap.appendChild(label);
+    slotsWrap.appendChild(grid);
+  }
+
+  modDateInput.addEventListener('change', () => fetchModSlots(modDateInput.value));
+
+  // ── Helpers ────────────────────────────────────────────────
+  function statusBadge(status, past = false) {
+    if (status === 'ACTIVE' && past) return `<span class="badge badge-secondary">Completed</span>`;
+    if (status === 'ACTIVE')         return `<span class="badge badge-success">Active</span>`;
+    return `<span class="badge badge-secondary">Cancelled</span>`;
+  }
+
+  function isPast(b) {
+    const today = todayISO();
+    if (b.date < today) return true;
+    if (b.date > today) return false;
+    return (b.endTime || '00:00:00').substring(0, 5) < new Date().toTimeString().substring(0, 5);
+  }
+
+  function isStarted(b) {
+    const today = todayISO();
+    if (b.date < today) return true;
+    if (b.date > today) return false;
+    return (b.startTime || '00:00:00').substring(0, 5) <= new Date().toTimeString().substring(0, 5);
+  }
+
+  function applyFilter(bookings, filter) {
+    if (filter === 'all')       return bookings;
+    if (filter === 'COMPLETED') return bookings.filter(b => b.status === 'ACTIVE' && isPast(b));
+    if (filter === 'ACTIVE')    return bookings.filter(b => b.status === 'ACTIVE' && !isPast(b));
+    return bookings.filter(b => b.status === filter);
+  }
+
+  // ── Render ─────────────────────────────────────────────────
+  function renderBookings(bookings) {
+    const container = document.getElementById('bookings-container');
+    if (!bookings.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📅</div>
+          <h4>No bookings found</h4>
+          <p>You haven't made any bookings yet.</p>
+          <a href="stations.html" class="btn btn-primary">Browse stations</a>
+        </div>`;
+      return;
+    }
+
+    const adminCol  = isAdmin() ? '<th>Driver</th>' : '';
+    const adminCell = b => isAdmin() ? `<td style="color:var(--color-text-secondary)">${esc(b.username) || '—'}</td>` : '';
+
+    const tableRows = bookings.map(b => {
+      const past   = isPast(b);
+      const canAct = b.status === 'ACTIVE' && !isStarted(b);
+      return `<tr>
+        <td style="font-weight:500">#${esc(b.bookingId)}</td>
+        ${adminCell(b)}
+        <td>${esc(b.stationName) || '—'}</td>
+        <td>${esc(b.connectorType) || '—'}</td>
+        <td>${esc(fmtDate(b.date))}</td>
+        <td>${esc(fmtTime(b.startTime))} – ${esc(fmtTime(b.endTime))}</td>
+        <td>${statusBadge(b.status, past)}</td>
+        <td>
+          <div class="table-actions">
+            ${canAct ? `
+              <button class="btn btn-icon btn-outline-primary modify-btn btn-sm"
+                      data-id="${esc(b.bookingId)}" data-date="${esc(b.date)}"
+                      data-connector-id="${esc(b.connectorId)}"
+                      data-start="${esc(b.startTime)}" data-end="${esc(b.endTime)}" title="Modify">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-icon btn-outline-danger cancel-btn btn-sm"
+                      data-id="${esc(b.bookingId)}" title="Cancel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>` : '<span style="color:var(--color-text-muted)">—</span>'}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const cardItems = bookings.map(b => {
+      const past   = isPast(b);
+      const canAct = b.status === 'ACTIVE' && !isStarted(b);
+      return `
+        <div class="booking-card">
+          <div class="booking-card-header">
+            <div>
+              <div class="booking-card-title">${esc(b.stationName) || '—'}</div>
+              <div style="font-size:12px;color:var(--color-text-muted)">#${esc(b.bookingId)}</div>
+            </div>
+            ${statusBadge(b.status, past)}
+          </div>
+          <div class="booking-card-body">
+            <div class="booking-card-row"><span>Connector</span><strong>${esc(b.connectorType) || '—'}</strong></div>
+            <div class="booking-card-row"><span>Date</span><strong>${esc(fmtDate(b.date))}</strong></div>
+            <div class="booking-card-row"><span>Time</span><strong>${esc(fmtTime(b.startTime))} – ${esc(fmtTime(b.endTime))}</strong></div>
+            ${isAdmin() ? `<div class="booking-card-row"><span>Driver</span><strong>${esc(b.username) || '—'}</strong></div>` : ''}
+          </div>
+          ${canAct ? `
+          <div class="booking-card-actions">
+            <button class="btn btn-outline-primary btn-sm modify-btn"
+                    data-id="${esc(b.bookingId)}" data-date="${esc(b.date)}"
+                    data-connector-id="${esc(b.connectorId)}"
+                    data-start="${esc(b.startTime)}" data-end="${esc(b.endTime)}">Modify</button>
+            <button class="btn btn-outline-danger btn-sm cancel-btn" data-id="${esc(b.bookingId)}">Cancel</button>
+          </div>` : ''}
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="bookings-table-wrap table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th>${adminCol}<th>Station</th><th>Connector</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+      <div class="bookings-cards">${cardItems}</div>`;
+
+    container.querySelectorAll('.cancel-btn').forEach(btn => {
+      btn.addEventListener('click', async function () {
+        if (!confirm('Cancel this booking?')) return;
+        try {
+          await apiFetch(`api/bookings/${this.dataset.id}`, { method: 'DELETE' });
+          showAlert('alert-box', 'Booking cancelled.', 'success');
+          loadBookings();
+        } catch (err) { showAlert('alert-box', err.message); }
+      });
+    });
+
+    container.querySelectorAll('.modify-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        editingId          = +this.dataset.id;
+        editingConnectorId = this.dataset.connectorId;
+        modDateInput.value = this.dataset.date;
+        clearAlert('modify-alert');
+        openModify();
+        fetchModSlots(this.dataset.date);
+      });
+    });
+  }
+
+  // ── Filter pills ───────────────────────────────────────────
+  document.getElementById('filter-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.filter-pill');
+    if (!pill) return;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentFilter = pill.dataset.filter;
+    renderBookings(applyFilter(allBookings, currentFilter));
+  });
+
+  // ── Save modify ────────────────────────────────────────────
+  saveModifyBtn.addEventListener('click', async function () {
+    clearAlert('modify-alert');
+    if (!modifySlot) {
+      showAlert('modify-alert', 'Please select a time slot.');
+      return;
+    }
+
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner"></span> Saving…';
+
+    try {
+      await apiFetch(`api/bookings/${editingId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          date:      modDateInput.value,
+          startTime: modifySlot.startTime,
+          endTime:   modifySlot.endTime
+        })
+      });
+      closeModify();
+      showAlert('alert-box', 'Booking updated.', 'success');
+      loadBookings();
+    } catch (err) {
+      showAlert('modify-alert', err.message);
+      this.disabled = false;
+    }
+    this.textContent = 'Save Changes';
+  });
+
+  // ── Load bookings ──────────────────────────────────────────
+  async function loadBookings() {
+    try {
+      allBookings = await apiFetch('api/bookings');
+      renderBookings(applyFilter(allBookings, currentFilter));
+    } catch (err) {
+      document.getElementById('bookings-container').innerHTML =
+        `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  loadBookings();
+})();
+</script>
+</body>
+</html>

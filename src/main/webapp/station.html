@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Station — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body>
+<style>body { visibility: hidden; }</style>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="stations.html" class="navbar-brand">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 512 512" fill="white">
+          <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+          <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+          <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+        </svg>
+      </div>
+      <span class="logo-text">EV Booking</span>
+    </a>
+    <div class="navbar-links">
+      <a href="stations.html" class="nav-link">Stations</a>
+      <a href="bookings.html" class="nav-link">My Bookings</a>
+      <a href="admin.html" class="nav-link" id="nav-admin-link">Admin</a>
+    </div>
+    <div class="navbar-user">
+      <a href="profile.html" class="nav-profile-link">
+        <div class="nav-avatar" id="nav-avatar"></div>
+        <span class="nav-username" id="nav-username"></span>
+      </a>
+      <button class="btn btn-ghost btn-sm" id="nav-logout">Sign out</button>
+      <button id="nav-hamburger" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="nav-dropdown" class="nav-dropdown">
+    <a href="stations.html">Stations</a>
+    <a href="bookings.html">My Bookings</a>
+    <a href="admin.html" id="nav-dropdown-admin" style="display:none">Admin</a>
+    <a href="profile.html">Profile</a>
+    <div class="nav-dropdown-divider"></div>
+    <button id="nav-dropdown-logout" class="nav-dropdown-btn">Sign out</button>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div id="alert-box"></div>
+
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="stations.html">Stations</a>
+    <span class="breadcrumb-sep">›</span>
+    <span id="breadcrumb-name">Loading…</span>
+  </div>
+
+  <h1 id="station-title" style="margin-bottom:4px"></h1>
+  <p id="station-subtitle" style="color:var(--color-text-secondary);font-size:13px;margin-bottom:0;display:flex;align-items:center;gap:4px"></p>
+
+  <div class="booking-layout" id="main-content" style="display:none">
+    <!-- Left: booking panel -->
+    <div class="booking-panel">
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+          Book a charging slot
+        </div>
+
+        <!-- Step 1: connector -->
+        <div class="form-group">
+          <div class="step-indicator">
+            <span class="step-number">1</span>
+            <span class="step-label">Select connector type</span>
+          </div>
+          <div class="connector-btns" id="connector-list">
+            <span style="color:var(--color-text-muted);font-size:13px">Loading connectors…</span>
+          </div>
+        </div>
+
+        <!-- Step 2: date -->
+        <div class="form-group">
+          <div class="step-indicator">
+            <span class="step-number">2</span>
+            <span class="step-label">Select a date</span>
+          </div>
+          <input type="date" id="slot-date" disabled>
+        </div>
+
+        <!-- Step 3: slot -->
+        <div class="form-group">
+          <div class="step-indicator">
+            <span class="step-number">3</span>
+            <span class="step-label">Choose a time slot</span>
+          </div>
+          <div id="slots-container">
+            <p style="color:var(--color-text-muted);font-size:13px">Select a connector and date first.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: map + info -->
+    <div class="side-panel">
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+        <div class="mini-map" id="mini-map"></div>
+      </div>
+      <div class="card" id="info-card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Station info
+        </div>
+        <div id="info-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop hidden" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Confirm Booking</span>
+      <button class="modal-close" id="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-alert"></div>
+      <div class="booking-summary">
+        <div class="booking-summary-row">
+          <span class="booking-summary-label">Station</span>
+          <span class="booking-summary-value" id="m-station"></span>
+        </div>
+        <div class="booking-summary-row">
+          <span class="booking-summary-label">Connector</span>
+          <span class="booking-summary-value" id="m-connector"></span>
+        </div>
+        <div class="booking-summary-row">
+          <span class="booking-summary-label">Date</span>
+          <span class="booking-summary-value" id="m-date"></span>
+        </div>
+        <div class="booking-summary-row">
+          <span class="booking-summary-label">Time</span>
+          <span class="booking-summary-value" id="m-time" style="color:var(--color-primary)"></span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="confirm-book-btn">Confirm Booking</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, showAlert, clearAlert, fmtTime, fmtDate, todayISO, esc } from './js/api.js?v=20260526';
+  import { requireAuth, setupNavbar } from './js/auth.js?v=20260526';
+  import { loadGoogleMaps } from './js/map.js?v=20260526';
+
+(async () => {
+  if (!await requireAuth()) return;
+  setupNavbar();
+  document.body.style.visibility = 'visible';
+
+  const params    = new URLSearchParams(window.location.search);
+  const stationId = params.get('id');
+  if (!stationId) { window.location.href = 'stations.html'; }
+
+  let station      = null;
+  let selectedConn = null;
+  let selectedSlot = null;
+
+  // ── Modal helpers ──────────────────────────────────────────
+  const modal = document.getElementById('confirm-modal');
+  function openModal()  { modal.classList.remove('hidden'); }
+  function closeModal() { modal.classList.add('hidden'); clearAlert('modal-alert'); }
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  // ── Load station ───────────────────────────────────────────
+  async function loadStation() {
+    try {
+      station = await apiFetch(`api/stations/${stationId}`);
+      document.title = `${station.name} — EV Booking`;
+      document.getElementById('breadcrumb-name').textContent = station.name;
+      document.getElementById('station-title').textContent = station.name;
+      document.getElementById('station-subtitle').innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${esc(station.address)}`;
+
+      document.getElementById('info-body').innerHTML = `
+        <div class="detail-row">
+          <span class="detail-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+          <div><div class="detail-label">Address</div><div class="detail-value">${esc(station.address)}</div></div>
+        </div>
+        <div class="detail-row">
+          <span class="detail-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></span>
+          <div><div class="detail-label">Coordinates</div><div class="detail-value">${esc(station.latitude?.toFixed(5))}, ${esc(station.longitude?.toFixed(5))}</div></div>
+        </div>`;
+
+      document.getElementById('main-content').style.display = '';
+
+      // Mini map
+      try {
+        await loadGoogleMaps();
+        const miniMap = new google.maps.Map(document.getElementById('mini-map'), {
+          center: { lat: station.latitude, lng: station.longitude },
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          zoomControl: true,
+          styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }]
+        });
+        new google.maps.Marker({
+          position: { lat: station.latitude, lng: station.longitude },
+          map: miniMap,
+          title: station.name,
+          icon: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z',
+            fillColor: '#16a34a', fillOpacity: 1,
+            strokeColor: '#ffffff', strokeWeight: 2,
+            scale: 1.6, anchor: new google.maps.Point(12, 22)
+          }
+        });
+      } catch (_) {
+        document.getElementById('mini-map').innerHTML =
+          '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);font-size:12px">Map unavailable</div>';
+      }
+
+      await loadConnectors();
+    } catch (err) {
+      showAlert('alert-box', err.message);
+    }
+  }
+
+  // ── Load connectors ────────────────────────────────────────
+  async function loadConnectors() {
+    const container = document.getElementById('connector-list');
+    try {
+      const connectors = await apiFetch(`api/stations/${stationId}/connectors`);
+      if (!connectors.length) {
+        container.innerHTML = '<span style="color:var(--color-text-muted);font-size:13px">No connectors available.</span>';
+        return;
+      }
+
+      container.innerHTML = '';
+      connectors.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'connector-type-btn';
+        btn.textContent = c.connectorType;
+        btn.dataset.id   = c.connectorId;
+        btn.dataset.type = c.connectorType;
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.connector-type-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedConn = { id: +c.connectorId, type: c.connectorType };
+          const dateInput = document.getElementById('slot-date');
+          dateInput.disabled = false;
+          dateInput.value = '';
+          document.getElementById('slots-container').innerHTML =
+            '<p style="color:var(--color-text-muted);font-size:13px">Select a date to see available slots.</p>';
+        });
+        container.appendChild(btn);
+      });
+
+      const today = todayISO();
+      document.getElementById('slot-date').min = today;
+    } catch (err) {
+      container.innerHTML = `<span style="color:var(--color-danger-text);font-size:13px">${err.message}</span>`;
+    }
+  }
+
+  // ── Load slots ─────────────────────────────────────────────
+  document.getElementById('slot-date').addEventListener('change', async function () {
+    if (!selectedConn) return;
+    const date = this.value;
+    if (!date) return;
+
+    const container = document.getElementById('slots-container');
+    container.innerHTML = '<div class="spinner-center"><span class="spinner"></span></div>';
+
+    try {
+      const [slots, bookings] = await Promise.all([
+        apiFetch(`api/connectors/${selectedConn.id}/slots?date=${date}`),
+        apiFetch('api/bookings').catch(() => [])
+      ]);
+
+      if (!slots.length) {
+        container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No slots available for this date.</p>';
+        return;
+      }
+
+      const n5 = t => (t || '').substring(0, 5);
+      const takenKeys = new Set(
+        (bookings || [])
+          .filter(b => b.status === 'ACTIVE' &&
+                       +b.connectorId === +selectedConn.id &&
+                       b.date === date)
+          .map(b => n5(b.startTime) + '-' + n5(b.endTime))
+      );
+      const isToday = date === todayISO();
+
+      const grid = document.createElement('div');
+      grid.className = 'slots-grid';
+
+      slots.forEach(s => {
+        const taken      = takenKeys.has(n5(s.startTime) + '-' + n5(s.endTime));
+        const pastSlot   = isToday && new Date(`${date}T${s.startTime}`) <= new Date();
+        const unavailable = taken || pastSlot;
+
+        const btn = document.createElement('button');
+        btn.className = 'slot-btn';
+        if (unavailable) btn.classList.add('booked');
+        btn.dataset.slotId = s.slotId;
+        btn.dataset.start  = s.startTime;
+        btn.dataset.end    = s.endTime;
+        btn.innerHTML = `${fmtTime(s.startTime)}<br>${fmtTime(s.endTime)}`;
+        btn.disabled = unavailable;
+        if (!unavailable) {
+          btn.addEventListener('click', () => {
+            grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedSlot = { slotId: +s.slotId, startTime: s.startTime, endTime: s.endTime, date };
+            openConfirmModal();
+          });
+        }
+        grid.appendChild(btn);
+      });
+
+      container.innerHTML = '';
+      container.appendChild(grid);
+    } catch (err) {
+      container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  });
+
+  // ── Confirm modal ──────────────────────────────────────────
+  function openConfirmModal() {
+    document.getElementById('m-station').textContent   = station.name;
+    document.getElementById('m-connector').textContent = selectedConn.type;
+    document.getElementById('m-date').textContent      = fmtDate(selectedSlot.date);
+    document.getElementById('m-time').textContent      = `${fmtTime(selectedSlot.startTime)} – ${fmtTime(selectedSlot.endTime)}`;
+    clearAlert('modal-alert');
+    openModal();
+  }
+
+  document.getElementById('confirm-book-btn').addEventListener('click', async function () {
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner"></span> Booking…';
+    clearAlert('modal-alert');
+
+    try {
+      await apiFetch('api/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          stationId:   +stationId,
+          connectorId: selectedConn.id,
+          date:        selectedSlot.date,
+          startTime:   selectedSlot.startTime,
+          endTime:     selectedSlot.endTime
+        })
+      });
+      closeModal();
+      showAlert('alert-box', 'Booking confirmed! Redirecting to your bookings…', 'success');
+      setTimeout(() => window.location.href = 'bookings.html', 1600);
+    } catch (err) {
+      showAlert('modal-alert', err.message);
+      this.disabled = false;
+      this.textContent = 'Confirm Booking';
+    }
+  });
+
+  loadStation();
+})();
+</script>
+</body>
+</html>

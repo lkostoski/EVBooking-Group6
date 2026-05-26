@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body>
+<style>body { visibility: hidden; }</style>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="stations.html" class="navbar-brand">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 512 512" fill="white">
+          <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+          <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+          <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+        </svg>
+      </div>
+      <span class="logo-text">EV Booking</span>
+    </a>
+    <div class="navbar-links">
+      <a href="stations.html" class="nav-link">Stations</a>
+      <a href="bookings.html" class="nav-link">Bookings</a>
+      <a href="admin.html" class="nav-link" id="nav-admin-link">Admin</a>
+    </div>
+    <div class="navbar-user">
+      <a href="profile.html" class="nav-profile-link">
+        <div class="nav-avatar" id="nav-avatar"></div>
+        <span class="nav-username" id="nav-username"></span>
+      </a>
+      <button class="btn btn-ghost btn-sm" id="nav-logout">Sign out</button>
+      <button id="nav-hamburger" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="nav-dropdown" class="nav-dropdown">
+    <a href="stations.html">Stations</a>
+    <a href="bookings.html">My Bookings</a>
+    <a href="admin.html" id="nav-dropdown-admin" style="display:none">Admin</a>
+    <a href="profile.html">Profile</a>
+    <div class="nav-dropdown-divider"></div>
+    <button id="nav-dropdown-logout" class="nav-dropdown-btn">Sign out</button>
+  </div>
+</nav>
+
+<div class="container-fluid py-4">
+  <div class="page-header">
+    <h2>Admin Panel</h2>
+  </div>
+  <div id="alert-box"></div>
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="stations">Stations</button>
+    <button class="tab-btn" data-tab="connectors">Connectors</button>
+    <button class="tab-btn" data-tab="slots">Slots</button>
+    <button class="tab-btn" data-tab="bookings">All Bookings</button>
+  </div>
+
+  <!-- ── Stations tab ─────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-stations">
+    <div class="page-header" style="margin-bottom:12px">
+      <h4>Charging Stations</h4>
+      <button class="btn btn-primary btn-sm" id="add-station-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add station
+      </button>
+    </div>
+    <div id="stations-table-wrap">
+      <div class="spinner-center"><span class="spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- ── Connectors tab ───────────────────────────────── -->
+  <div class="tab-panel" id="tab-connectors">
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px;max-width:300px">
+        <label class="form-label">Station</label>
+        <select id="conn-station-select">
+          <option value="">Select a station…</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" id="add-conn-btn" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add connector
+      </button>
+    </div>
+    <div id="connectors-table-wrap">
+      <p style="color:var(--color-text-muted);font-size:13px">Select a station to view its connectors.</p>
+    </div>
+  </div>
+
+  <!-- ── Slots tab ────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-slots">
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px;max-width:220px">
+        <label class="form-label">Station</label>
+        <select id="slot-station-select">
+          <option value="">Select station…</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px;max-width:220px">
+        <label class="form-label">Connector</label>
+        <select id="slot-conn-select" disabled>
+          <option value="">Select connector…</option>
+        </select>
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label">Date filter</label>
+        <input type="date" id="slot-filter-date" disabled>
+      </div>
+      <button class="btn btn-primary btn-sm" id="add-slot-btn" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add slot
+      </button>
+    </div>
+    <div id="slots-table-wrap">
+      <p style="color:var(--color-text-muted);font-size:13px">Select a station and connector to view slots.</p>
+    </div>
+  </div>
+
+  <!-- ── All Bookings tab ──────────────────────────────── -->
+  <div class="tab-panel" id="tab-bookings">
+    <div class="page-header" style="margin-bottom:12px">
+      <h4>All Bookings</h4>
+      <button class="btn btn-primary btn-sm" id="add-booking-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add booking
+      </button>
+    </div>
+    <div id="all-bookings-wrap">
+      <div class="spinner-center"><span class="spinner"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Station Modal -->
+<div class="modal-backdrop hidden" id="station-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="station-modal-title">Add Station</span>
+      <button class="modal-close" data-close="station-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="station-modal-alert"></div>
+      <input type="hidden" id="s-id">
+      <div class="form-group">
+        <label class="form-label" for="s-name">Name</label>
+        <input type="text" id="s-name" placeholder="Station name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="s-address">Address</label>
+        <input type="text" id="s-address" placeholder="Full address" required>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label" for="s-lat">Latitude</label>
+          <input type="number" step="any" id="s-lat" placeholder="e.g. 51.505">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="s-lng">Longitude</label>
+          <input type="number" step="any" id="s-lng" placeholder="e.g. -0.09">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="station-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-station-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Connector Modal -->
+<div class="modal-backdrop hidden" id="conn-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Connector</span>
+      <button class="modal-close" data-close="conn-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="conn-modal-alert"></div>
+      <input type="hidden" id="c-id">
+      <div class="form-group">
+        <label class="form-label" for="c-type">Connector Type</label>
+        <select id="c-type">
+          <option value="Type 2">Type 2 (AC)</option>
+          <option value="CCS">CCS (DC Fast)</option>
+          <option value="CHAdeMO">CHAdeMO</option>
+          <option value="Tesla">Tesla</option>
+          <option value="Type 1">Type 1</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="conn-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-conn-btn">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slot Modal -->
+<div class="modal-backdrop hidden" id="slot-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Available Slot</span>
+      <button class="modal-close" data-close="slot-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="slot-modal-alert"></div>
+      <div class="form-group">
+        <label class="form-label" for="sl-date">Date</label>
+        <input type="date" id="sl-date" required>
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label" for="sl-start">Start Time</label>
+          <input type="time" id="sl-start" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sl-end">End Time</label>
+          <input type="time" id="sl-end" required>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="slot-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-slot-btn">Add Slot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<div class="modal-backdrop hidden" id="booking-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="booking-modal-title">Add Booking</span>
+      <button class="modal-close" data-close="booking-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="booking-modal-alert"></div>
+      <div class="form-group">
+        <label class="form-label" for="b-driver">Driver username</label>
+        <input type="text" id="b-driver" placeholder="e.g. nikos" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="b-station">Station</label>
+        <select id="b-station"><option value="">Select station…</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="b-connector">Connector</label>
+        <select id="b-connector" disabled><option value="">Select connector…</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="b-date">Date</label>
+        <input type="date" id="b-date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Available slot</label>
+        <div id="b-slots-wrap">
+          <p style="color:var(--color-text-muted);font-size:13px">Select station, connector and date.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="booking-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-booking-btn" disabled>Add Booking</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, showAlert, clearAlert, fmtTime, fmtDate, todayISO, esc } from './js/api.js?v=20260526';
+  import { requireAdmin, setupNavbar } from './js/auth.js?v=20260526';
+
+(async () => {
+  if (!await requireAdmin()) return;
+  setupNavbar();
+  document.body.style.visibility = 'visible';
+
+  let allStations       = [];
+  let selectedConnSid   = null;
+  let selectedSlotConn  = null;
+  let selectedBookingSlot = null;
+  let editingBookingId = null;
+
+  // ── Generic modal close wiring ─────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    const alertId = id.replace('-modal', '-modal-alert').replace('station', 'station').replace('conn', 'conn').replace('slot', 'slot');
+    clearAlert(alertId);
+  }
+
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.close));
+  });
+  document.querySelectorAll('.modal-backdrop').forEach(bd => {
+    bd.addEventListener('click', e => { if (e.target === bd) closeModal(bd.id); });
+  });
+
+  // ── Tab switching ──────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+      if (this.dataset.tab === 'bookings') loadAllBookings();
+    });
+  });
+
+  // ── Station selects population ─────────────────────────────
+  function populateStationSelects() {
+    const opts = allStations.map(s => `<option value="${esc(s.stationId)}">${esc(s.name)}</option>`).join('');
+    document.getElementById('conn-station-select').innerHTML = '<option value="">Select a station…</option>' + opts;
+    document.getElementById('slot-station-select').innerHTML = '<option value="">Select station…</option>' + opts;
+    document.getElementById('b-station').innerHTML = '<option value="">Select station…</option>' + opts;
+  }
+
+  // ── Stations tab ───────────────────────────────────────────
+  function renderStationsTable(stations) {
+    const wrap = document.getElementById('stations-table-wrap');
+    if (!stations.length) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔌</div><h4>No stations yet</h4></div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Name</th><th>Address</th><th>Lat</th><th>Lng</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${stations.map(s => `<tr>
+            <td>${esc(s.stationId)}</td>
+            <td style="font-weight:500">${esc(s.name)}</td>
+            <td style="color:var(--color-text-secondary)">${esc(s.address)}</td>
+            <td style="color:var(--color-text-muted)">${esc(s.latitude)}</td>
+            <td style="color:var(--color-text-muted)">${esc(s.longitude)}</td>
+            <td><div class="table-actions">
+              <button class="btn btn-icon btn-outline-primary btn-sm edit-station-btn"
+                      data-id="${esc(s.stationId)}" data-name="${esc(s.name)}"
+                      data-addr="${esc(s.address)}" data-lat="${esc(s.latitude)}" data-lng="${esc(s.longitude)}" title="Edit">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-icon btn-outline-danger btn-sm del-station-btn" data-id="${esc(s.stationId)}" title="Delete">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button>
+            </div></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+
+  }
+
+  document.getElementById('add-station-btn').addEventListener('click', () => {
+    ['s-id','s-name','s-address','s-lat','s-lng'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('station-modal-title').textContent = 'Add Station';
+    clearAlert('station-modal-alert');
+    openModal('station-modal');
+  });
+
+  // Single delegated listener for the stations table — handles both edit and delete.
+  // Using closest() so clicks on SVG children inside icon buttons still resolve to the button.
+  document.getElementById('stations-table-wrap').addEventListener('click', async function (e) {
+    const editBtn = e.target.closest('.edit-station-btn');
+    if (editBtn) {
+      document.getElementById('s-id').value      = editBtn.dataset.id;
+      document.getElementById('s-name').value    = editBtn.dataset.name;
+      document.getElementById('s-address').value = editBtn.dataset.addr;
+      document.getElementById('s-lat').value     = editBtn.dataset.lat;
+      document.getElementById('s-lng').value     = editBtn.dataset.lng;
+      document.getElementById('station-modal-title').textContent = 'Edit Station';
+      clearAlert('station-modal-alert');
+      openModal('station-modal');
+      return;
+    }
+
+    const delBtn = e.target.closest('.del-station-btn');
+    if (!delBtn) return;
+    const id = delBtn.dataset.id;
+    if (!confirm('Delete this station and all its data?')) return;
+    delBtn.disabled = true;
+    try {
+      await apiFetch(`api/stations/${id}`, { method: 'DELETE' });
+      showAlert('alert-box', 'Station deleted.', 'success');
+      loadStations();
+    } catch (err) {
+      showAlert('alert-box', err.message);
+      delBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('save-station-btn').addEventListener('click', async function () {
+    clearAlert('station-modal-alert');
+    const id   = document.getElementById('s-id').value;
+    const body = {
+      name:      document.getElementById('s-name').value.trim(),
+      address:   document.getElementById('s-address').value.trim(),
+      latitude:  parseFloat(document.getElementById('s-lat').value),
+      longitude: parseFloat(document.getElementById('s-lng').value)
+    };
+    if (!body.name || !body.address) {
+      showAlert('station-modal-alert', 'Name and address are required.');
+      return;
+    }
+    this.disabled = true;
+    try {
+      if (id) {
+        await apiFetch(`api/stations/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        showAlert('alert-box', 'Station updated.', 'success');
+      } else {
+        await apiFetch('api/stations', { method: 'POST', body: JSON.stringify(body) });
+        showAlert('alert-box', 'Station added.', 'success');
+      }
+      closeModal('station-modal');
+      loadStations();
+    } catch (err) { showAlert('station-modal-alert', err.message); }
+    this.disabled = false;
+  });
+
+  async function loadStations() {
+    try {
+      allStations = await apiFetch('api/stations');
+      renderStationsTable(allStations);
+      populateStationSelects();
+    } catch (err) {
+      document.getElementById('stations-table-wrap').innerHTML =
+        `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  // ── Connectors tab ─────────────────────────────────────────
+  document.getElementById('conn-station-select').addEventListener('change', async function () {
+    selectedConnSid = this.value || null;
+    document.getElementById('add-conn-btn').disabled = !selectedConnSid;
+    if (!selectedConnSid) {
+      document.getElementById('connectors-table-wrap').innerHTML =
+        '<p style="color:var(--color-text-muted);font-size:13px">Select a station to view its connectors.</p>';
+      return;
+    }
+    loadConnectors(selectedConnSid);
+  });
+
+  async function loadConnectors(stationId) {
+    const wrap = document.getElementById('connectors-table-wrap');
+    wrap.innerHTML = '<div class="spinner-center"><span class="spinner"></span></div>';
+    try {
+      const conns = await apiFetch(`api/stations/${stationId}/connectors`);
+      if (!conns.length) {
+        wrap.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No connectors for this station.</p>';
+        return;
+      }
+      wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Type</th><th>Actions</th></tr></thead>
+            <tbody>${conns.map(c => `<tr>
+              <td>${esc(c.connectorId)}</td>
+              <td style="font-weight:500">${esc(c.connectorType)}</td>
+              <td><div class="table-actions">
+                <button class="btn btn-icon btn-outline-primary btn-sm edit-conn-btn"
+                        data-id="${esc(c.connectorId)}" data-sid="${esc(stationId)}"
+                        data-type="${esc(c.connectorType)}" title="Edit">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn btn-icon btn-outline-danger btn-sm del-conn-btn"
+                        data-id="${esc(c.connectorId)}" data-sid="${esc(stationId)}" title="Delete">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div></td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+
+      wrap.querySelectorAll('.edit-conn-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          selectedConnSid = this.dataset.sid;
+          document.getElementById('c-id').value = this.dataset.id;
+          document.getElementById('c-type').value = this.dataset.type;
+          document.getElementById('save-conn-btn').textContent = 'Save';
+          clearAlert('conn-modal-alert');
+          openModal('conn-modal');
+        });
+      });
+
+      wrap.querySelectorAll('.del-conn-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Delete this connector?')) return;
+          try {
+            await apiFetch(`api/stations/${this.dataset.sid}/connectors/${this.dataset.id}`, { method: 'DELETE' });
+            showAlert('alert-box', 'Connector deleted.', 'success');
+            loadConnectors(stationId);
+          } catch (err) { showAlert('alert-box', err.message); }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('add-conn-btn').addEventListener('click', () => {
+    document.getElementById('c-id').value = '';
+    document.getElementById('c-type').value = 'Type 2';
+    document.getElementById('save-conn-btn').textContent = 'Add';
+    clearAlert('conn-modal-alert');
+    openModal('conn-modal');
+  });
+
+  document.getElementById('save-conn-btn').addEventListener('click', async function () {
+    clearAlert('conn-modal-alert');
+    const id = document.getElementById('c-id').value;
+    this.disabled = true;
+    try {
+      await apiFetch(id
+        ? `api/stations/${selectedConnSid}/connectors/${id}`
+        : `api/stations/${selectedConnSid}/connectors`, {
+        method: id ? 'PUT' : 'POST',
+        body: JSON.stringify({ connectorType: document.getElementById('c-type').value })
+      });
+      closeModal('conn-modal');
+      showAlert('alert-box', id ? 'Connector updated.' : 'Connector added.', 'success');
+      loadConnectors(selectedConnSid);
+    } catch (err) { showAlert('conn-modal-alert', err.message); }
+    this.disabled = false;
+  });
+
+  // ── Slots tab ──────────────────────────────────────────────
+  document.getElementById('slot-station-select').addEventListener('change', async function () {
+    const stationId = this.value;
+    const connSel = document.getElementById('slot-conn-select');
+    connSel.innerHTML = '<option value="">Select connector…</option>';
+    connSel.disabled = !stationId;
+    document.getElementById('slot-filter-date').disabled = true;
+    document.getElementById('add-slot-btn').disabled = true;
+    selectedSlotConn = null;
+    document.getElementById('slots-table-wrap').innerHTML =
+      '<p style="color:var(--color-text-muted);font-size:13px">Select a connector.</p>';
+
+    if (stationId) {
+      try {
+        const conns = await apiFetch(`api/stations/${stationId}/connectors`);
+        conns.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.connectorId;
+          // textContent is safe — never interprets HTML.
+          opt.textContent = `${c.connectorType} (#${c.connectorId})`;
+          connSel.appendChild(opt);
+        });
+      } catch (_) {}
+    }
+  });
+
+  document.getElementById('slot-conn-select').addEventListener('change', function () {
+    selectedSlotConn = this.value || null;
+    const datePicker = document.getElementById('slot-filter-date');
+    const addBtn     = document.getElementById('add-slot-btn');
+    datePicker.disabled = !selectedSlotConn;
+    addBtn.disabled     = !selectedSlotConn;
+    if (selectedSlotConn) loadSlots();
+    else document.getElementById('slots-table-wrap').innerHTML =
+      '<p style="color:var(--color-text-muted);font-size:13px">Select a connector to view slots.</p>';
+  });
+
+  document.getElementById('slot-filter-date').addEventListener('change', loadSlots);
+
+  async function loadSlots() {
+    if (!selectedSlotConn) return;
+    const date = document.getElementById('slot-filter-date').value;
+    const url  = `api/connectors/${selectedSlotConn}/slots` + (date ? `?date=${date}` : '');
+    const wrap = document.getElementById('slots-table-wrap');
+    wrap.innerHTML = '<div class="spinner-center"><span class="spinner"></span></div>';
+    try {
+      const slots = await apiFetch(url);
+      if (!slots.length) {
+        wrap.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No slots found.</p>';
+        return;
+      }
+      wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Date</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
+            <tbody>${slots.map(s => `<tr>
+              <td>${esc(s.slotId)}</td>
+              <td>${esc(fmtDate(s.date))}</td>
+              <td>${esc(fmtTime(s.startTime))}</td>
+              <td>${esc(fmtTime(s.endTime))}</td>
+              <td><div class="table-actions">
+                <button class="btn btn-icon btn-outline-danger btn-sm del-slot-btn" data-id="${esc(s.slotId)}" title="Delete">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div></td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+
+      wrap.querySelectorAll('.del-slot-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Delete this slot?')) return;
+          try {
+            await apiFetch(`api/connectors/${selectedSlotConn}/slots/${this.dataset.id}`, { method: 'DELETE' });
+            showAlert('alert-box', 'Slot deleted.', 'success');
+            loadSlots();
+          } catch (err) { showAlert('alert-box', err.message); }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('add-slot-btn').addEventListener('click', () => {
+    clearAlert('slot-modal-alert');
+    document.getElementById('sl-date').value  = document.getElementById('slot-filter-date').value || '';
+    document.getElementById('sl-start').value = '';
+    document.getElementById('sl-end').value   = '';
+    openModal('slot-modal');
+  });
+
+  document.getElementById('save-slot-btn').addEventListener('click', async function () {
+    clearAlert('slot-modal-alert');
+    const date  = document.getElementById('sl-date').value;
+    const start = document.getElementById('sl-start').value;
+    const end   = document.getElementById('sl-end').value;
+    if (!date || !start || !end) {
+      showAlert('slot-modal-alert', 'All fields are required.');
+      return;
+    }
+    this.disabled = true;
+    try {
+      await apiFetch(`api/connectors/${selectedSlotConn}/slots`, {
+        method: 'POST',
+        body: JSON.stringify({ date, startTime: start + ':00', endTime: end + ':00' })
+      });
+      closeModal('slot-modal');
+      showAlert('alert-box', 'Slot added.', 'success');
+      loadSlots();
+    } catch (err) { showAlert('slot-modal-alert', err.message); }
+    this.disabled = false;
+  });
+
+  // ── Admin create booking ──────────────────────────────────
+  function resetBookingModal() {
+    editingBookingId = null;
+    selectedBookingSlot = null;
+    document.getElementById('booking-modal-title').textContent = 'Add Booking';
+    document.getElementById('save-booking-btn').textContent = 'Add Booking';
+    document.getElementById('b-driver').value = '';
+    document.getElementById('b-driver').disabled = false;
+    document.getElementById('b-station').value = '';
+    document.getElementById('b-station').disabled = false;
+    document.getElementById('b-connector').innerHTML = '<option value="">Select connector…</option>';
+    document.getElementById('b-connector').disabled = true;
+    document.getElementById('b-date').value = '';
+    document.getElementById('b-date').min = new Date().toISOString().split('T')[0];
+    document.getElementById('b-slots-wrap').innerHTML =
+      '<p style="color:var(--color-text-muted);font-size:13px">Select station, connector and date.</p>';
+    document.getElementById('save-booking-btn').disabled = true;
+    clearAlert('booking-modal-alert');
+  }
+
+  document.getElementById('add-booking-btn').addEventListener('click', () => {
+    resetBookingModal();
+    openModal('booking-modal');
+  });
+
+  document.getElementById('b-station').addEventListener('change', async function () {
+    const connectorSelect = document.getElementById('b-connector');
+    connectorSelect.innerHTML = '<option value="">Select connector…</option>';
+    connectorSelect.disabled = !this.value;
+    selectedBookingSlot = null;
+    document.getElementById('save-booking-btn').disabled = true;
+    document.getElementById('b-slots-wrap').innerHTML =
+      '<p style="color:var(--color-text-muted);font-size:13px">Select connector and date.</p>';
+    if (!this.value) return;
+    try {
+      const connectors = await apiFetch(`api/stations/${this.value}/connectors`);
+      populateBookingConnectorOptions(connectors);
+    } catch (err) {
+      showAlert('booking-modal-alert', err.message);
+    }
+  });
+
+  function populateBookingConnectorOptions(connectors) {
+    const connectorSelect = document.getElementById('b-connector');
+    connectorSelect.innerHTML = '<option value="">Select connector…</option>' +
+      connectors.map(c => `<option value="${esc(c.connectorId)}">${esc(c.connectorType)} (#${esc(c.connectorId)})</option>`).join('');
+  }
+
+  document.getElementById('b-connector').addEventListener('change', loadBookingSlots);
+  document.getElementById('b-date').addEventListener('change', loadBookingSlots);
+
+  async function loadBookingSlots() {
+    const connectorId = document.getElementById('b-connector').value;
+    const date = document.getElementById('b-date').value;
+    const wrap = document.getElementById('b-slots-wrap');
+    const preferredKey = selectedBookingSlot
+      ? `${fmtTime(selectedBookingSlot.startTime)}-${fmtTime(selectedBookingSlot.endTime)}`
+      : null;
+    selectedBookingSlot = null;
+    document.getElementById('save-booking-btn').disabled = true;
+    if (!connectorId || !date) {
+      wrap.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">Select connector and date.</p>';
+      return;
+    }
+    wrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading slots…</div>';
+    try {
+      const [slots, bookings] = await Promise.all([
+        apiFetch(`api/connectors/${connectorId}/slots?date=${date}`),
+        apiFetch('api/bookings').catch(() => [])
+      ]);
+      const taken = new Set(
+        (bookings || [])
+          .filter(b => b.status === 'ACTIVE'
+            && String(b.connectorId) === String(connectorId)
+            && b.date === date
+            && String(b.bookingId) !== String(editingBookingId))
+          .map(b => `${fmtTime(b.startTime)}-${fmtTime(b.endTime)}`)
+      );
+      renderBookingSlots(slots || [], taken, preferredKey);
+    } catch (err) {
+      wrap.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  function renderBookingSlots(slots, taken, preferredKey = null) {
+    const wrap = document.getElementById('b-slots-wrap');
+    if (!slots.length) {
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No available slots for this date.</p>';
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'slot-grid';
+    slots.forEach(slot => {
+      const key = `${fmtTime(slot.startTime)}-${fmtTime(slot.endTime)}`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-btn';
+      btn.textContent = `${fmtTime(slot.startTime)} – ${fmtTime(slot.endTime)}`;
+      if (taken.has(key)) {
+        btn.classList.add('booked');
+        btn.disabled = true;
+      } else {
+        if (preferredKey === key) {
+          btn.classList.add('selected');
+          selectedBookingSlot = slot;
+          document.getElementById('save-booking-btn').disabled = false;
+        }
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedBookingSlot = slot;
+          document.getElementById('save-booking-btn').disabled = false;
+        });
+      }
+      grid.appendChild(btn);
+    });
+    wrap.innerHTML = '';
+    wrap.appendChild(grid);
+  }
+
+  document.getElementById('save-booking-btn').addEventListener('click', async function () {
+    clearAlert('booking-modal-alert');
+    const driverUsername = document.getElementById('b-driver').value.trim();
+    const stationId = document.getElementById('b-station').value;
+    const connectorId = document.getElementById('b-connector').value;
+    const date = document.getElementById('b-date').value;
+    if (!driverUsername || !stationId || !connectorId || !date || !selectedBookingSlot) {
+      showAlert('booking-modal-alert', 'Driver, station, connector, date and slot are required.');
+      return;
+    }
+    this.disabled = true;
+    try {
+      if (editingBookingId) {
+        await apiFetch(`api/bookings/${editingBookingId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            date,
+            startTime: selectedBookingSlot.startTime,
+            endTime: selectedBookingSlot.endTime
+          })
+        });
+      } else {
+        await apiFetch('api/bookings', {
+          method: 'POST',
+          body: JSON.stringify({
+            driverUsername,
+            stationId: parseInt(stationId, 10),
+            connectorId: parseInt(connectorId, 10),
+            date,
+            startTime: selectedBookingSlot.startTime,
+            endTime: selectedBookingSlot.endTime
+          })
+        });
+      }
+      closeModal('booking-modal');
+      showAlert('alert-box', editingBookingId ? 'Booking updated.' : 'Booking added.', 'success');
+      loadAllBookings();
+    } catch (err) {
+      showAlert('booking-modal-alert', err.message);
+      this.disabled = false;
+    }
+  });
+
+  function isPast(b) {
+    const today = todayISO();
+    if (b.date < today) return true;
+    if (b.date > today) return false;
+    return (b.endTime || '00:00:00').substring(0, 5) < new Date().toTimeString().substring(0, 5);
+  }
+
+  function isStarted(b) {
+    const today = todayISO();
+    if (b.date < today) return true;
+    if (b.date > today) return false;
+    return (b.startTime || '00:00:00').substring(0, 5) <= new Date().toTimeString().substring(0, 5);
+  }
+
+  // ── All Bookings tab ───────────────────────────────────────
+  async function loadAllBookings() {
+    const wrap = document.getElementById('all-bookings-wrap');
+    wrap.innerHTML = '<div class="spinner-center"><span class="spinner"></span></div>';
+    try {
+      const bookings = await apiFetch('api/bookings');
+      if (!bookings.length) {
+        wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><h4>No bookings in the system</h4></div>';
+        return;
+      }
+      wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Driver</th><th>Station</th><th>Connector</th>
+              <th>Date</th><th>Time</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>${bookings.map(b => `<tr>
+              <td style="font-weight:500">#${esc(b.bookingId)}</td>
+              <td style="color:var(--color-text-secondary)">${esc(b.username) || '—'}</td>
+              <td>${esc(b.stationName) || '—'}</td>
+              <td>${esc(b.connectorType) || '—'}</td>
+              <td>${esc(fmtDate(b.date))}</td>
+              <td>${esc(fmtTime(b.startTime))} – ${esc(fmtTime(b.endTime))}</td>
+              <td>${b.status !== 'ACTIVE'
+                ? '<span class="badge badge-secondary">Cancelled</span>'
+                : isPast(b)
+                  ? '<span class="badge badge-secondary">Completed</span>'
+                  : '<span class="badge badge-success">Active</span>'}</td>
+              <td>${b.status === 'ACTIVE' && !isStarted(b) ? `
+                <button class="btn btn-outline-primary btn-xs admin-edit-booking-btn"
+                        data-id="${esc(b.bookingId)}"
+                        data-username="${esc(b.username)}"
+                        data-station-id="${esc(b.stationId)}"
+                        data-connector-id="${esc(b.connectorId)}"
+                        data-date="${esc(b.date)}"
+                        data-start="${esc(b.startTime)}"
+                        data-end="${esc(b.endTime)}">
+                  Edit
+                </button>
+                <button class="btn btn-outline-danger btn-xs admin-cancel-btn" data-id="${esc(b.bookingId)}">
+                  Cancel
+                </button>` : '—'}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+
+      wrap.querySelectorAll('.admin-edit-booking-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          resetBookingModal();
+          editingBookingId = this.dataset.id;
+          selectedBookingSlot = {
+            startTime: this.dataset.start,
+            endTime: this.dataset.end
+          };
+          document.getElementById('booking-modal-title').textContent = 'Edit Booking';
+          document.getElementById('save-booking-btn').textContent = 'Save Changes';
+          document.getElementById('b-driver').value = this.dataset.username;
+          document.getElementById('b-driver').disabled = true;
+          document.getElementById('b-station').value = this.dataset.stationId;
+          document.getElementById('b-station').disabled = true;
+          document.getElementById('b-date').value = this.dataset.date;
+          try {
+            const connectors = await apiFetch(`api/stations/${this.dataset.stationId}/connectors`);
+            populateBookingConnectorOptions(connectors);
+            document.getElementById('b-connector').value = this.dataset.connectorId;
+            document.getElementById('b-connector').disabled = true;
+            await loadBookingSlots();
+            openModal('booking-modal');
+          } catch (err) {
+            showAlert('alert-box', err.message);
+          }
+        });
+      });
+
+      wrap.querySelectorAll('.admin-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          if (!confirm('Cancel this booking?')) return;
+          try {
+            await apiFetch(`api/bookings/${this.dataset.id}`, { method: 'DELETE' });
+            showAlert('alert-box', 'Booking cancelled.', 'success');
+            loadAllBookings();
+          } catch (err) { showAlert('alert-box', err.message); }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    }
+  }
+
+  loadStations();
+})();
+</script>
+</body>
+</html>

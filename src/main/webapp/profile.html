@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body>
+<style>body { visibility: hidden; }</style>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="stations.html" class="navbar-brand">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 512 512" fill="white">
+          <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+          <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+          <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+        </svg>
+      </div>
+      <span class="logo-text">EV Booking</span>
+    </a>
+    <div class="navbar-links">
+      <a href="stations.html" class="nav-link">Stations</a>
+      <a href="bookings.html" class="nav-link">My Bookings</a>
+      <a href="admin.html" class="nav-link" id="nav-admin-link">Admin</a>
+    </div>
+    <div class="navbar-user">
+      <a href="profile.html" class="nav-profile-link">
+        <div class="nav-avatar" id="nav-avatar"></div>
+        <span class="nav-username" id="nav-username"></span>
+      </a>
+      <button class="btn btn-ghost btn-sm" id="nav-logout">Sign out</button>
+      <button id="nav-hamburger" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+          <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="nav-dropdown" class="nav-dropdown">
+    <a href="stations.html">Stations</a>
+    <a href="bookings.html">My Bookings</a>
+    <a href="admin.html" id="nav-dropdown-admin" style="display:none">Admin</a>
+    <a href="profile.html">Profile</a>
+    <div class="nav-dropdown-divider"></div>
+    <button id="nav-dropdown-logout" class="nav-dropdown-btn">Sign out</button>
+  </div>
+</nav>
+
+<div class="container-sm py-4">
+
+  <!-- Header -->
+  <div class="profile-hero">
+    <div class="profile-avatar" id="profile-avatar-initials"></div>
+    <div>
+      <p class="profile-hero-name" id="profile-username"></p>
+      <p class="profile-hero-sub" id="profile-hero-sub"></p>
+    </div>
+    <span class="badge" id="profile-role-badge"></span>
+  </div>
+
+  <div id="alert-box"></div>
+
+  <!-- Account info -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Account information
+    </div>
+    <div class="info-row">
+      <span class="info-label">Username</span>
+      <span class="info-value" id="info-username">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Role</span>
+      <span class="info-value" id="info-role">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Total bookings</span>
+      <span class="info-value" id="info-bookings">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Active bookings</span>
+      <span class="info-value" id="info-active">—</span>
+    </div>
+  </div>
+
+  <!-- Change password -->
+  <div class="card mt-4">
+    <div class="card-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Change password
+    </div>
+    <div id="pw-alert"></div>
+    <form id="pw-form">
+      <div class="form-group">
+        <label class="form-label" for="current-pw">Current password</label>
+        <input type="password" id="current-pw" placeholder="Enter current password" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="new-pw">New password</label>
+        <input type="password" id="new-pw" placeholder="At least 6 characters" required minlength="6">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="confirm-pw">Confirm new password</label>
+        <input type="password" id="confirm-pw" placeholder="Repeat new password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="pw-btn">Update password</button>
+    </form>
+  </div>
+
+  <!-- Session -->
+  <div class="card mt-4">
+    <div class="card-title" style="color:var(--color-danger-text)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Session
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:500;font-size:13px">Sign out</div>
+        <div style="font-size:12px;color:var(--color-text-muted)">You will be returned to the login screen.</div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm" id="signout-btn">Sign out</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { apiFetch, showAlert, clearAlert } from './js/api.js?v=20260526';
+  import { requireAuth, setupNavbar, getUsername, getRole, isAdmin, logout } from './js/auth.js?v=20260526';
+
+(async () => {
+  if (!await requireAuth()) return;
+  setupNavbar();
+  document.body.style.visibility = 'visible';
+
+  const username = getUsername();
+  const role     = getRole();
+
+  // Header
+  document.getElementById('profile-avatar-initials').textContent = username ? username.charAt(0).toUpperCase() : '?';
+  document.getElementById('profile-username').textContent = username || '—';
+  document.getElementById('profile-hero-sub').textContent = role === 'ADMIN' ? 'Administrator account' : 'Driver account';
+  document.getElementById('info-username').textContent    = username || '—';
+  document.getElementById('info-role').textContent        = role     || '—';
+
+  const badge = document.getElementById('profile-role-badge');
+  if (role === 'ADMIN') {
+    badge.textContent = 'Administrator';
+    badge.classList.add('badge-admin');
+  } else {
+    badge.textContent = 'Driver';
+    badge.classList.add('badge-success');
+  }
+
+  // Booking stats
+  apiFetch('api/bookings').then(bookings => {
+    if (!bookings) return;
+    document.getElementById('info-bookings').textContent = bookings.length;
+    document.getElementById('info-active').textContent   = bookings.filter(b => b.status === 'ACTIVE').length;
+  }).catch(() => {});
+
+  // Change password
+  document.getElementById('pw-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAlert('pw-alert');
+
+    const currentPw = document.getElementById('current-pw').value;
+    const newPw     = document.getElementById('new-pw').value;
+    const confirmPw = document.getElementById('confirm-pw').value;
+
+    if (newPw !== confirmPw) {
+      showAlert('pw-alert', 'New passwords do not match.');
+      return;
+    }
+
+    const btn = document.getElementById('pw-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Updating…';
+
+    try {
+      await apiFetch('api/auth/password', {
+        method: 'PUT',
+        skipAuthRedirect: true,
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
+      });
+      showAlert('pw-alert', 'Password updated successfully.', 'success');
+      e.target.reset();
+    } catch (err) {
+      showAlert('pw-alert', err.message);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Update password';
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', logout);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" class="app-page">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Charging Stations — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body class="app-page">
+<style>body { visibility: hidden; }</style>
+<div class="app-shell">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="stations.html" class="navbar-brand">
+        <div class="logo-icon">
+          <svg width="18" height="18" viewBox="0 0 512 512" fill="white">
+            <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+            <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+            <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+          </svg>
+        </div>
+        <span class="logo-text">EV Booking</span>
+      </a>
+      <div class="navbar-links">
+        <a href="stations.html" class="nav-link">Stations</a>
+        <a href="bookings.html" class="nav-link">My Bookings</a>
+        <a href="admin.html" class="nav-link" id="nav-admin-link">Admin</a>
+      </div>
+      <div class="navbar-user">
+        <a href="profile.html" class="nav-profile-link">
+          <div class="nav-avatar" id="nav-avatar"></div>
+          <span class="nav-username" id="nav-username"></span>
+        </a>
+        <button class="btn btn-ghost btn-sm" id="nav-logout">Sign out</button>
+        <button id="nav-hamburger" aria-label="Menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+            <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+            <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="nav-dropdown" class="nav-dropdown">
+      <a href="stations.html">Stations</a>
+      <a href="bookings.html">My Bookings</a>
+      <a href="admin.html" id="nav-dropdown-admin" style="display:none">Admin</a>
+      <a href="profile.html">Profile</a>
+      <div class="nav-dropdown-divider"></div>
+      <button id="nav-dropdown-logout" class="nav-dropdown-btn">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Map + Sidebar layout -->
+  <div class="map-layout">
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <!-- Mobile handle -->
+      <div class="sidebar-handle" id="sidebar-handle" role="button" aria-label="Toggle sidebar">
+        <div class="sidebar-handle-bar"></div>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <div class="sidebar-count" id="station-count"></div>
+        <div class="search-wrap">
+          <span class="search-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" id="search-input" placeholder="Search stations…" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Station cards -->
+      <div class="sidebar-body" id="stations-list">
+        <div class="spinner-center">
+          <span class="spinner"></span>
+          <span style="color:var(--color-text-muted);font-size:13px">Loading stations…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div id="station-map"></div>
+
+    <!-- Mobile backdrop (closes panel/sidebar on tap) -->
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
+    <!-- Station detail panel -->
+    <div class="station-detail-panel" id="station-detail-panel">
+      <div class="detail-panel-handle" id="detail-panel-handle">
+        <div class="detail-panel-handle-bar"></div>
+      </div>
+      <div class="detail-panel-header">
+        <button class="detail-panel-close" id="detail-close" aria-label="Close">✕</button>
+      </div>
+      <div id="detail-mini-map"></div>
+      <div class="detail-panel-body">
+        <div class="detail-panel-name" id="detail-name"></div>
+        <div class="detail-panel-address" id="detail-address"></div>
+        <div class="connector-chips" id="detail-chips"></div>
+        <div><span class="badge badge-success">Available</span></div>
+        <a href="#" class="btn btn-primary detail-book-btn" id="detail-book-btn">View &amp; Book</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, esc } from './js/api.js?v=20260526';
+  import { requireAuth, setupNavbar } from './js/auth.js?v=20260526';
+  import { loadGoogleMaps, createStationMarker, markerIcon } from './js/map.js?v=20260526';
+
+(async () => {
+  if (!await requireAuth()) return;
+  setupNavbar();
+  document.body.style.visibility = 'visible';
+
+  let allStations       = [];
+  let markers           = [];
+  let markersByStationId = {};
+  let map;
+  let connectorMap     = {};
+  let detailMiniMap    = null;
+  let detailMiniMarker = null;
+  let selectedMarker   = null;
+
+  const detailPanel = document.getElementById('station-detail-panel');
+  const backdrop    = document.getElementById('mobile-backdrop');
+  const sidebar     = document.getElementById('sidebar');
+
+  function isMobile() { return window.innerWidth <= 768; }
+
+  function updateBackdrop() {
+    const show = isMobile() && (
+      detailPanel.classList.contains('open') || sidebar.classList.contains('expanded')
+    );
+    backdrop.classList.toggle('visible', show);
+  }
+
+  function resetSelectedMarker() {
+    if (selectedMarker) {
+      selectedMarker.setIcon(markerIcon(false));
+      selectedMarker.setZIndex(undefined);
+      selectedMarker = null;
+    }
+  }
+
+  // ── Detail panel ─────────────────────────────────────────────
+  function openDetailPanel(station, connectorTypes, clickedMarker) {
+    document.getElementById('detail-name').textContent    = station.name;
+    document.getElementById('detail-address').textContent = station.address;
+    document.getElementById('detail-chips').innerHTML = connectorTypes
+      .map(t => `<span class="connector-chip">${esc(t)}</span>`).join('');
+    document.getElementById('detail-book-btn').href = `station.html?id=${encodeURIComponent(station.stationId)}`;
+
+    // Apply selected marker style
+    resetSelectedMarker();
+    if (clickedMarker) {
+      clickedMarker.setIcon(markerIcon(true));
+      clickedMarker.setZIndex(google.maps.Marker.MAX_ZINDEX + 1);
+      selectedMarker = clickedMarker;
+    }
+
+    detailPanel.classList.add('open');
+    updateBackdrop();
+
+    if (station.latitude && station.longitude && window.google) {
+      const pos = { lat: station.latitude, lng: station.longitude };
+      if (!detailMiniMap) {
+        detailMiniMap = new google.maps.Map(document.getElementById('detail-mini-map'), {
+          center: pos,
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          zoomControl: false,
+          gestureHandling: 'none',
+          styles: [
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+          ]
+        });
+        detailMiniMarker = new google.maps.Marker({
+          position: pos,
+          map: detailMiniMap,
+          title: station.name,
+          icon: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: '#16a34a',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 1.6,
+            anchor: new google.maps.Point(12, 22),
+          }
+        });
+      } else {
+        detailMiniMap.setCenter(pos);
+        detailMiniMarker.setPosition(pos);
+        detailMiniMarker.setTitle(station.name);
+      }
+      setTimeout(() => google.maps.event.trigger(detailMiniMap, 'resize'), 260);
+    }
+  }
+
+  function closeDetailPanel() {
+    detailPanel.classList.remove('open');
+    updateBackdrop();
+  }
+
+  document.getElementById('detail-close').addEventListener('click', closeDetailPanel);
+
+  // ── Detail panel swipe to dismiss ────────────────────────────
+  const detailHandle = document.getElementById('detail-panel-handle');
+  let dpSwipeStartY  = 0;
+  let dpSwipeMoved   = false;
+
+  detailHandle.addEventListener('touchstart', e => {
+    dpSwipeStartY = e.touches[0].clientY;
+    dpSwipeMoved  = false;
+  }, { passive: true });
+
+  detailHandle.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - dpSwipeStartY;
+    if (Math.abs(dy) > 8) dpSwipeMoved = true;
+    if (dy > 0) {
+      detailPanel.style.transition = 'none';
+      detailPanel.style.transform  = `translateY(${dy}px)`;
+    }
+  }, { passive: true });
+
+  detailHandle.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - dpSwipeStartY;
+    if (dpSwipeMoved && dy > 60) {
+      detailPanel.style.transition = '';
+      detailPanel.style.transform  = 'translateY(100%)';
+      detailPanel.addEventListener('transitionend', () => {
+        detailPanel.style.transform = '';
+        detailPanel.classList.remove('open');
+        updateBackdrop();
+      }, { once: true });
+    } else {
+      detailPanel.style.transition = '';
+      detailPanel.style.transform  = '';
+    }
+  });
+
+  detailHandle.addEventListener('click', () => {
+    if (dpSwipeMoved) return;
+    closeDetailPanel();
+  });
+
+  backdrop.addEventListener('click', () => {
+    closeDetailPanel();
+    sidebar.classList.remove('expanded');
+    updateBackdrop();
+  });
+
+  // ── Mobile bottom sheet (swipe + tap) ────────────────────────
+  const handle    = document.getElementById('sidebar-handle');
+  let swipeStartY = 0;
+  let swipeMoved  = false;
+
+  handle.addEventListener('touchstart', e => {
+    swipeStartY = e.touches[0].clientY;
+    swipeMoved  = false;
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', e => {
+    const dy        = swipeStartY - e.touches[0].clientY;
+    if (Math.abs(dy) > 8) swipeMoved = true;
+    const collapsed = 150;
+    const expanded  = Math.round(window.innerHeight * 0.65);
+    const base      = sidebar.classList.contains('expanded') ? expanded : collapsed;
+    const next      = Math.max(collapsed - 20, Math.min(Math.round(window.innerHeight * 0.85), base + dy));
+    sidebar.style.transition = 'none';
+    sidebar.style.height     = next + 'px';
+  }, { passive: true });
+
+  handle.addEventListener('touchend', e => {
+    const dy = swipeStartY - e.changedTouches[0].clientY;
+    sidebar.style.transition = '';
+    sidebar.style.height     = '';
+    if (swipeMoved) {
+      if (dy > 40)       sidebar.classList.add('expanded');
+      else if (dy < -40) sidebar.classList.remove('expanded');
+      updateBackdrop();
+    }
+  });
+
+  handle.addEventListener('click', () => {
+    if (swipeMoved) return;
+    sidebar.classList.toggle('expanded');
+    updateBackdrop();
+  });
+
+  // ── Build station card ───────────────────────────────────────
+  function buildCard(s, connectorTypes = []) {
+    const div = document.createElement('div');
+    div.className = 'station-card';
+    div.dataset.id = s.stationId;
+
+    const chips = connectorTypes.map(t =>
+      `<span class="connector-chip">${esc(t)}</span>`
+    ).join('');
+
+    div.innerHTML = `
+      <div class="station-card-top">
+        <div class="station-name">${esc(s.name)}</div>
+      </div>
+      <div class="station-address">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${esc(s.address)}
+      </div>
+      ${chips ? `<div class="connector-chips">${chips}</div>` : ''}
+      <a href="station.html?id=${encodeURIComponent(s.stationId)}" class="btn-book">View &amp; Book</a>`;
+
+    div.addEventListener('click', e => {
+      if (e.target.tagName === 'A' || e.target.closest('a')) return;
+      selectCard(div, s);
+    });
+    return div;
+  }
+
+  function selectCard(cardEl, station) {
+    document.querySelectorAll('.station-card').forEach(c => c.classList.remove('active'));
+    cardEl.classList.add('active');
+    const types  = (connectorMap[station.stationId] || []).map(c => c.connectorType);
+    const marker = markersByStationId[station.stationId] || null;
+    openDetailPanel(station, types, marker);
+    if (map && station.latitude && station.longitude) {
+      map.panTo({ lat: station.latitude, lng: station.longitude });
+      map.setZoom(14);
+    }
+  }
+
+  // ── Render station list ──────────────────────────────────────
+  function renderList(stations) {
+    const list  = document.getElementById('stations-list');
+    const count = document.getElementById('station-count');
+    count.textContent = `${stations.length} station${stations.length !== 1 ? 's' : ''} found`;
+
+    if (!stations.length) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔌</div><h4>No stations found</h4><p>Try a different search term.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    stations.forEach(s => {
+      const types = (connectorMap[s.stationId] || []).map(c => c.connectorType);
+      list.appendChild(buildCard(s, types));
+    });
+  }
+
+  // ── Render markers ───────────────────────────────────────────
+  function renderMarkers(stations) {
+    if (!map) return;
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+    markersByStationId = {};
+    selectedMarker = null;
+
+    const bounds = new google.maps.LatLngBounds();
+
+    stations.forEach(s => {
+      if (!s.latitude || !s.longitude) return;
+      const marker = createStationMarker(map, s, () => {
+        const types = (connectorMap[s.stationId] || []).map(c => c.connectorType);
+        openDetailPanel(s, types, marker);
+
+        document.querySelectorAll('.station-card').forEach(c => c.classList.remove('active'));
+        const card = document.querySelector(`.station-card[data-id="${s.stationId}"]`);
+        if (card) {
+          card.classList.add('active');
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        }
+      });
+      markersByStationId[s.stationId] = marker;
+      markers.push(marker);
+      bounds.extend({ lat: s.latitude, lng: s.longitude });
+    });
+
+    if (stations.length) map.fitBounds(bounds);
+  }
+
+  // ── Load data ────────────────────────────────────────────────
+  async function load() {
+    try {
+      allStations = await apiFetch('api/stations');
+
+      await Promise.allSettled(allStations.map(async s => {
+        try {
+          connectorMap[s.stationId] = await apiFetch(`api/stations/${s.stationId}/connectors`);
+        } catch (_) {
+          connectorMap[s.stationId] = [];
+        }
+      }));
+
+      renderList(allStations);
+
+      try {
+        await loadGoogleMaps();
+        map = new google.maps.Map(document.getElementById('station-map'), {
+          center: { lat: 48.8, lng: 9.0 },
+          zoom: 5,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+          styles: [
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+          ]
+        });
+        renderMarkers(allStations);
+
+        // Clicking the map background closes the detail panel
+        map.addListener('click', closeDetailPanel);
+      } catch (_) {}
+
+      document.getElementById('search-input').addEventListener('input', function () {
+        const q = this.value.toLowerCase().trim();
+        const filtered = q
+          ? allStations.filter(s => s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q))
+          : allStations;
+        renderList(filtered);
+        renderMarkers(filtered);
+        closeDetailPanel();
+      });
+
+    } catch (err) {
+      document.getElementById('stations-list').innerHTML =
+        `<div class="alert alert-danger" style="margin:10px">${err.message}</div>`;
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

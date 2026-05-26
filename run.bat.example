@@ -1,0 +1,39 @@
+@echo off
+REM Local development launcher for Windows.
+REM Copy this file to run.bat and fill in the keys (get them from the group chat).
+REM run.bat is gitignored so your keys won't be pushed.
+
+set PORT=8083
+set MAPS_KEY=YOUR_GOOGLE_MAPS_KEY
+set CLIENT_ID=YOUR_GOOGLE_OAUTH_CLIENT_ID
+
+REM Local Postgres credentials — change DB_PASSWORD to whatever you set
+REM when installing PostgreSQL.
+set DB_USER=postgres
+set DB_PASSWORD=admin123
+
+REM Deterministic session secret for local dev so sessions survive restarts.
+REM Production deployments must override SESSION_SECRET with a random 32+ char value.
+if "%SESSION_SECRET%"=="" set SESSION_SECRET=local-dev-session-secret-please-override-in-production-32chars
+
+REM ---------------------------------------------------------------------
+REM Free port %PORT% if anything is already listening on it.
+REM ---------------------------------------------------------------------
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr LISTENING ^| findstr :%PORT% 2^>nul') do (
+    taskkill /F /PID %%a >nul 2>&1 && echo Stopped old server PID %%a
+)
+
+echo Building...
+call mvn -q -DskipTests package
+if errorlevel 1 (
+    echo Maven build failed.
+    exit /b 1
+)
+
+echo.
+echo Starting server at http://localhost:%PORT%
+echo.
+
+set GOOGLE_MAPS_KEY=%MAPS_KEY%
+set GOOGLE_CLIENT_ID=%CLIENT_ID%
+java -jar target\dependency\webapp-runner.jar --port %PORT% target\ev-booking.war

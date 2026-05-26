@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — EV Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260526">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 512 512" fill="white">
+          <path d="M353.622,121.496V13.534C353.622,6.06,347.569,0,340.102,0h-21.63c-7.467,0-13.527,6.06-13.527,13.534v107.962h-97.892V13.534C207.054,6.06,201.001,0,193.527,0h-21.622c-7.474,0-13.527,6.06-13.527,13.534v107.962h-56.409v45.962h308.063v-45.962H353.622z"/>
+          <path d="M101.968,245.307c0,55.332,32.946,102.944,80.271,124.386v29.699c0,14.261,11.568,25.828,25.829,25.828h95.863c14.268,0,25.829-11.567,25.829-25.828v-29.699c47.332-21.441,80.271-69.054,80.271-124.386v-56.969H101.968V245.307z"/>
+          <rect x="226.711" y="444.366" width="58.578" height="67.634"/>
+        </svg>
+      </div>
+      <div class="logo-text">EV Booking</div>
+      <div class="auth-subtitle">Sign in to your account</div>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div id="google-btn-container"></div>
+
+    <div class="divider" id="or-divider" style="display:none"><span>or</span></div>
+
+    <form id="login-form">
+      <div class="input-group">
+        <span class="input-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <input type="text" id="username" placeholder="Username" required autocomplete="username">
+      </div>
+      <div class="input-group">
+        <span class="input-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </span>
+        <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign in</button>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <p class="auth-footer">Don't have an account? <a href="register.html">Register</a></p>
+  </div>
+
+  <script type="module">
+    import { apiFetch, showAlert, clearAlert } from './js/api.js?v=20260526';
+
+    async function initGoogle() {
+      try {
+        const cfg = await apiFetch('api/config', { skipAuthRedirect: true });
+        if (!cfg?.clientId) return;
+
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://accounts.google.com/gsi/client';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+
+        google.accounts.id.initialize({
+          client_id: cfg.clientId,
+          callback: async ({ credential }) => {
+            clearAlert('alert-box');
+            try {
+              await apiFetch('api/auth/google', {
+                method: 'POST',
+                body: JSON.stringify({ idToken: credential }),
+                skipAuthRedirect: true
+              });
+              window.location.href = 'stations.html?cb=20260526';
+            } catch (e) {
+              showAlert('alert-box', e.message);
+            }
+          }
+        });
+
+        const container = document.getElementById('google-btn-container');
+        google.accounts.id.renderButton(container, {
+          type: 'standard',
+          shape: 'rectangular',
+          theme: 'outline',
+          text: 'continue_with',
+          size: 'large',
+          width: container.clientWidth || 320
+        });
+
+        document.getElementById('or-divider').style.display = '';
+      } catch (err) {
+        console.error('Google sign-in failed to initialize:', err);
+        showAlert('alert-box', 'Google sign-in is not available on this origin. Use username/password or check the Google OAuth localhost origin.', 'warning');
+      }
+    }
+
+    initGoogle();
+
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      clearAlert('alert-box');
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Signing in…';
+
+      try {
+        await apiFetch('api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value
+          }),
+          skipAuthRedirect: true
+        });
+        console.info('Password login succeeded; redirecting to stations.html');
+        window.location.href = 'stations.html?cb=20260526';
+      } catch (err) {
+        console.error('Password login failed:', err);
+        showAlert('alert-box', err.message);
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

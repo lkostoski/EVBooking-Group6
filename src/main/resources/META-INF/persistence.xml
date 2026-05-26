@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
+             https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+
+    <persistence-unit name="evbooking-pu" transaction-type="RESOURCE_LOCAL">
+
+        <class>com.evbooking.model.User</class>
+        <class>com.evbooking.model.ChargingStation</class>
+        <class>com.evbooking.model.Connector</class>
+        <class>com.evbooking.model.AvailableSlot</class>
+        <class>com.evbooking.model.Booking</class>
+        <class>com.evbooking.model.UserSession</class>
+
+        <properties>
+            <!--
+                Connection properties are supplied at runtime by HibernateUtil so
+                that no credentials are baked into the build artefact. The values
+                below are safe development defaults; production deployments must
+                set DATABASE_URL (and on Heroku that is enough).
+            -->
+            <property name="jakarta.persistence.jdbc.driver"
+                      value="org.postgresql.Driver"/>
+
+            <property name="hibernate.dialect"
+                      value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <property name="hibernate.hbm2ddl.auto"
+                      value="validate"/>
+            <property name="hibernate.show_sql"
+                      value="false"/>
+
+            <!-- Sensible connection pool defaults for multi-instance PaaS deployments -->
+            <property name="hibernate.connection.provider_class"
+                      value="org.hibernate.hikaricp.internal.HikariCPConnectionProvider"/>
+            <property name="hibernate.hikari.maximumPoolSize" value="5"/>
+            <property name="hibernate.hikari.minimumIdle" value="1"/>
+            <property name="hibernate.hikari.idleTimeout" value="30000"/>
+        </properties>
+
+    </persistence-unit>
+
+</persistence>
