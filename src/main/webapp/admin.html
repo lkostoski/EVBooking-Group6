@@ -623,8 +623,8 @@
   document.getElementById('add-slot-btn').addEventListener('click', () => {
     clearAlert('slot-modal-alert');
     document.getElementById('sl-date').value  = document.getElementById('slot-filter-date').value || '';
-    document.getElementById('sl-start').value = '08:00';
-    document.getElementById('sl-end').value   = '22:00';
+    document.getElementById('sl-start').value = '00:00';
+    document.getElementById('sl-end').value   = '23:59';
     openModal('slot-modal');
   });
 

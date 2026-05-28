@@ -44,8 +44,8 @@ INSERT INTO connectors (connector_type, station_id) VALUES
   ('Type 2',  7), ('CCS',     7), ('CHAdeMO', 7),
   ('Type 2',  8), ('CCS',     8);
 
--- Availability windows: next 14 days, 08:00–22:00 per connector.
--- Admins can shrink or split these for maintenance; users book any sub-range within them.
+-- Availability windows: next 14 days, 00:00–23:59 per connector (24/7).
+-- Admins can narrow these windows for maintenance; users book any sub-range within them.
 DO $$
 DECLARE
   d   DATE;
@@ -55,7 +55,7 @@ BEGIN
     d := CURRENT_DATE + day_offset;
     FOR cid IN 1..19 LOOP
       INSERT INTO available_slots (connector_id, date, start_time, end_time) VALUES
-        (cid, d, '08:00', '22:00');
+        (cid, d, '00:00', '23:59');
     END LOOP;
   END LOOP;
 END $$;
