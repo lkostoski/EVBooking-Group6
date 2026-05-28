@@ -214,7 +214,7 @@ class BookingServiceFlowTest {
         public List<Booking> findByUsername(String username) {
             return bookings.stream()
                 .filter(b -> b.getUser().getUsername().equals(username))
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
         }
 
         @Override

@@ -193,7 +193,7 @@ class CatalogServiceTest {
         public List<Connector> findByStationId(Long stationId) {
             return connectors.stream()
                 .filter(c -> c.getChargingStation().getStationId().equals(stationId))
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
         }
 
         @Override
@@ -221,14 +221,14 @@ class CatalogServiceTest {
             return slots.stream()
                 .filter(s -> s.getConnector().getConnectorId().equals(connectorId))
                 .filter(s -> s.getDate().equals(date))
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
         }
 
         @Override
         public List<AvailableSlot> findByConnectorId(Long connectorId) {
             return slots.stream()
                 .filter(s -> s.getConnector().getConnectorId().equals(connectorId))
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
         }
 
         @Override
