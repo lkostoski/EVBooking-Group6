@@ -44,7 +44,8 @@ INSERT INTO connectors (connector_type, station_id) VALUES
   ('Type 2',  7), ('CCS',     7), ('CHAdeMO', 7),
   ('Type 2',  8), ('CCS',     8);
 
--- Available slots: next 14 days, 08:00–20:00, 1-hour blocks (12 slots/day per connector)
+-- Availability windows: next 14 days, 08:00–22:00 per connector.
+-- Admins can shrink or split these for maintenance; users book any sub-range within them.
 DO $$
 DECLARE
   d   DATE;
@@ -54,18 +55,7 @@ BEGIN
     d := CURRENT_DATE + day_offset;
     FOR cid IN 1..19 LOOP
       INSERT INTO available_slots (connector_id, date, start_time, end_time) VALUES
-        (cid, d, '08:00', '09:00'),
-        (cid, d, '09:00', '10:00'),
-        (cid, d, '10:00', '11:00'),
-        (cid, d, '11:00', '12:00'),
-        (cid, d, '12:00', '13:00'),
-        (cid, d, '13:00', '14:00'),
-        (cid, d, '14:00', '15:00'),
-        (cid, d, '15:00', '16:00'),
-        (cid, d, '16:00', '17:00'),
-        (cid, d, '17:00', '18:00'),
-        (cid, d, '18:00', '19:00'),
-        (cid, d, '19:00', '20:00');
+        (cid, d, '08:00', '22:00');
     END LOOP;
   END LOOP;
 END $$;
@@ -82,11 +72,11 @@ END $$;
 --   elena:  Thermi/CCS, in 5 days, ACTIVE
 --   kostas: Kalamaria/CCS, in 7 days, CANCELLED
 INSERT INTO bookings (driver_username, station_id, connector_id, date, start_time, end_time, status) VALUES
-  ('kostas', 1, 1,  CURRENT_DATE - 3, '09:00', '10:00', 'ACTIVE'),
-  ('elena',  2, 5,  CURRENT_DATE - 1, '14:00', '15:00', 'ACTIVE'),
-  ('kostas', 3, 7,  CURRENT_DATE - 2, '11:00', '12:00', 'CANCELLED'),
-  ('elena',  2, 4,  CURRENT_DATE + 1, '08:00', '09:00', 'ACTIVE'),
-  ('kostas', 1, 2,  CURRENT_DATE + 2, '10:00', '11:00', 'ACTIVE'),
-  ('kostas', 4, 9,  CURRENT_DATE + 3, '13:00', '14:00', 'ACTIVE'),
-  ('elena',  7, 16, CURRENT_DATE + 5, '15:00', '16:00', 'ACTIVE'),
-  ('kostas', 5, 12, CURRENT_DATE + 7, '09:00', '10:00', 'CANCELLED');
+  ('kostas', 1, 1,  CURRENT_DATE - 3, '09:00', '09:30', 'ACTIVE'),
+  ('elena',  2, 5,  CURRENT_DATE - 1, '14:00', '14:40', 'ACTIVE'),
+  ('kostas', 3, 7,  CURRENT_DATE - 2, '11:00', '11:40', 'CANCELLED'),
+  ('elena',  2, 4,  CURRENT_DATE + 1, '08:00', '08:30', 'ACTIVE'),
+  ('kostas', 1, 2,  CURRENT_DATE + 2, '10:00', '10:40', 'ACTIVE'),
+  ('kostas', 4, 9,  CURRENT_DATE + 3, '13:00', '13:30', 'ACTIVE'),
+  ('elena',  7, 16, CURRENT_DATE + 5, '15:00', '15:40', 'ACTIVE'),
+  ('kostas', 5, 12, CURRENT_DATE + 7, '09:00', '09:20', 'CANCELLED');

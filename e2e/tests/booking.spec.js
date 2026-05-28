@@ -37,41 +37,55 @@ test.describe('Booking flow', () => {
     await expect(page.locator('#slot-date')).toBeEnabled();
   });
 
-  test('selecting a date loads time slots', async ({ page }) => {
+  test('selecting a date loads the availability window', async ({ page }) => {
     await page.goto(`/station.html?id=${STATION_ID}`);
     await page.waitForSelector('.connector-type-btn');
     await page.locator('.connector-type-btn').first().click();
     await page.fill('#slot-date', tomorrow());
-    await page.waitForSelector('.slot-btn');
-    await expect(page.locator('.slot-btn').first()).toBeVisible();
+    await page.waitForSelector('#booking-start');
+    await expect(page.locator('#booking-start')).toBeVisible();
+    await expect(page.locator('#booking-end')).toBeVisible();
   });
 
-  test('clicking an available slot opens the confirm modal', async ({ page }) => {
+  test('picking start and end time enables the review button', async ({ page }) => {
     await page.goto(`/station.html?id=${STATION_ID}`);
     await page.waitForSelector('.connector-type-btn');
     await page.locator('.connector-type-btn').first().click();
     await page.fill('#slot-date', tomorrow());
-    await page.waitForSelector('.slot-btn:not(.booked)');
-    await page.locator('.slot-btn:not(.booked)').first().click();
+    await page.waitForSelector('#booking-start');
+    await page.fill('#booking-start', '10:00');
+    await page.dispatchEvent('#booking-start', 'change');
+    await page.fill('#booking-end', '10:40');
+    await page.dispatchEvent('#booking-end', 'change');
+    await expect(page.locator('#review-btn')).toBeEnabled();
+  });
+
+  test('clicking review opens the confirm modal with correct time', async ({ page }) => {
+    await page.goto(`/station.html?id=${STATION_ID}`);
+    await page.waitForSelector('.connector-type-btn');
+    await page.locator('.connector-type-btn').first().click();
+    await page.fill('#slot-date', tomorrow());
+    await page.waitForSelector('#booking-start');
+    await page.fill('#booking-start', '09:00');
+    await page.dispatchEvent('#booking-start', 'change');
+    await page.fill('#booking-end', '09:30');
+    await page.dispatchEvent('#booking-end', 'change');
+    await page.click('#review-btn');
     await expect(page.locator('#confirm-modal')).not.toHaveClass(/hidden/);
     await expect(page.locator('#m-station')).not.toBeEmpty();
-    await expect(page.locator('#m-time')).not.toBeEmpty();
+    await expect(page.locator('#m-time')).toContainText('9:00');
   });
 
-  test('booked slots are disabled', async ({ page }) => {
+  test('existing bookings on connector/date are shown in the window info', async ({ page }) => {
     await page.goto(`/station.html?id=${STATION_ID}`);
     await page.waitForSelector('.connector-type-btn');
-    // Use connector 2 (CCS) which has a booking in 2 days from seed
     await page.locator('.connector-type-btn:has-text("CCS")').click();
-    // Use the exact date from seed: CURRENT_DATE + 2
     const inTwoDays = new Date();
     inTwoDays.setDate(inTwoDays.getDate() + 2);
-    const dateStr = inTwoDays.toISOString().split('T')[0];
-    await page.fill('#slot-date', dateStr);
-    await page.waitForSelector('.slot-btn');
-    // At least the booked slot (10:00-11:00 from seed) should be disabled
-    const bookedSlots = page.locator('.slot-btn.booked');
-    await expect(bookedSlots.first()).toBeDisabled();
+    await page.fill('#slot-date', inTwoDays.toISOString().split('T')[0]);
+    await page.waitForSelector('#booking-start');
+    // seed has a booking on CCS connector in 2 days — should show "Already booked"
+    await expect(page.locator('#slots-container')).toContainText(/Already booked/);
   });
 
   test('confirming a booking redirects to bookings page', async ({ page }) => {
@@ -80,8 +94,12 @@ test.describe('Booking flow', () => {
     // Use connector 3 (CHAdeMO) to avoid conflicts with seed bookings
     await page.locator('.connector-type-btn:has-text("CHAdeMO")').click();
     await page.fill('#slot-date', tomorrow());
-    await page.waitForSelector('.slot-btn:not(.booked)');
-    await page.locator('.slot-btn:not(.booked)').first().click();
+    await page.waitForSelector('#booking-start');
+    await page.fill('#booking-start', '09:00');
+    await page.dispatchEvent('#booking-start', 'change');
+    await page.fill('#booking-end', '09:30');
+    await page.dispatchEvent('#booking-end', 'change');
+    await page.click('#review-btn');
     await expect(page.locator('#confirm-modal')).not.toHaveClass(/hidden/);
     await page.click('#confirm-book-btn');
     await page.waitForURL(/bookings\.html/, { timeout: 10000 });
@@ -92,8 +110,12 @@ test.describe('Booking flow', () => {
     await page.waitForSelector('.connector-type-btn');
     await page.locator('.connector-type-btn:has-text("CHAdeMO")').click();
     await page.fill('#slot-date', tomorrow());
-    await page.waitForSelector('.slot-btn:not(.booked)');
-    await page.locator('.slot-btn:not(.booked)').first().click();
+    await page.waitForSelector('#booking-start');
+    await page.fill('#booking-start', '09:00');
+    await page.dispatchEvent('#booking-start', 'change');
+    await page.fill('#booking-end', '09:30');
+    await page.dispatchEvent('#booking-end', 'change');
+    await page.click('#review-btn');
     await page.click('#confirm-book-btn');
     await page.waitForURL(/bookings\.html/, { timeout: 10000 });
     await page.waitForSelector('.badge-success');
@@ -159,8 +181,12 @@ test.describe('Booking flow', () => {
     await page.waitForSelector('.connector-type-btn');
     await page.locator('.connector-type-btn:has-text("CHAdeMO")').click();
     await page.fill('#slot-date', tomorrow());
-    await page.waitForSelector('.slot-btn:not(.booked)');
-    await page.locator('.slot-btn:not(.booked)').first().click();
+    await page.waitForSelector('#booking-start');
+    await page.fill('#booking-start', '09:00');
+    await page.dispatchEvent('#booking-start', 'change');
+    await page.fill('#booking-end', '09:30');
+    await page.dispatchEvent('#booking-end', 'change');
+    await page.click('#review-btn');
     await page.click('#confirm-book-btn');
     await page.waitForURL(/bookings\.html/, { timeout: 10000 });
 

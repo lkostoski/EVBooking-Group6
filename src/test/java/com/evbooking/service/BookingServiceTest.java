@@ -29,7 +29,7 @@ class BookingServiceTest {
     @DisplayName("validateTimes accepts a well-formed window")
     void validateTimesAcceptsValid() {
         assertDoesNotThrow(() -> BookingService.validateTimes(
-            TOMORROW, LocalTime.of(8, 0), LocalTime.of(9, 30)));
+            TOMORROW, LocalTime.of(8, 0), LocalTime.of(8, 30)));
     }
 
     @Test

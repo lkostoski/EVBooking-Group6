@@ -123,7 +123,7 @@
       </div>
       <button class="btn btn-primary btn-sm" id="add-slot-btn" disabled>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add slot
+        Add window
       </button>
     </div>
     <div id="slots-table-wrap">
@@ -214,7 +214,7 @@
 <div class="modal-backdrop hidden" id="slot-modal">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Add Available Slot</span>
+      <span class="modal-title">Set Availability Window</span>
       <button class="modal-close" data-close="slot-modal">✕</button>
     </div>
     <div class="modal-body">
@@ -236,7 +236,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" data-close="slot-modal">Cancel</button>
-      <button class="btn btn-primary" id="save-slot-btn">Add Slot</button>
+      <button class="btn btn-primary" id="save-slot-btn">Save Window</button>
     </div>
   </div>
 </div>
@@ -267,7 +267,7 @@
         <input type="date" id="b-date" required>
       </div>
       <div class="form-group">
-        <label class="form-label">Available slot</label>
+        <label class="form-label">Booking time</label>
         <div id="b-slots-wrap">
           <p style="color:var(--color-text-muted);font-size:13px">Select station, connector and date.</p>
         </div>
@@ -623,8 +623,8 @@
   document.getElementById('add-slot-btn').addEventListener('click', () => {
     clearAlert('slot-modal-alert');
     document.getElementById('sl-date').value  = document.getElementById('slot-filter-date').value || '';
-    document.getElementById('sl-start').value = '';
-    document.getElementById('sl-end').value   = '';
+    document.getElementById('sl-start').value = '08:00';
+    document.getElementById('sl-end').value   = '22:00';
     openModal('slot-modal');
   });
 
@@ -701,73 +701,123 @@
   document.getElementById('b-connector').addEventListener('change', loadBookingSlots);
   document.getElementById('b-date').addEventListener('change', loadBookingSlots);
 
+  function addMinsAdmin(hhmm, mins) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const total = h * 60 + m + mins;
+    if (total < 0) return '00:00';
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+  function toMinsAdmin(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
   async function loadBookingSlots() {
     const connectorId = document.getElementById('b-connector').value;
     const date = document.getElementById('b-date').value;
     const wrap = document.getElementById('b-slots-wrap');
-    const preferredKey = selectedBookingSlot
-      ? `${fmtTime(selectedBookingSlot.startTime)}-${fmtTime(selectedBookingSlot.endTime)}`
-      : null;
     selectedBookingSlot = null;
     document.getElementById('save-booking-btn').disabled = true;
     if (!connectorId || !date) {
       wrap.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">Select connector and date.</p>';
       return;
     }
-    wrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading slots…</div>';
+    wrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading…</div>';
     try {
       const [slots, bookings] = await Promise.all([
         apiFetch(`api/connectors/${connectorId}/slots?date=${date}`),
         apiFetch('api/bookings').catch(() => [])
       ]);
-      const taken = new Set(
-        (bookings || [])
-          .filter(b => b.status === 'ACTIVE'
-            && String(b.connectorId) === String(connectorId)
-            && b.date === date
-            && String(b.bookingId) !== String(editingBookingId))
-          .map(b => `${fmtTime(b.startTime)}-${fmtTime(b.endTime)}`)
+      const existingBookings = (bookings || []).filter(b =>
+        b.status === 'ACTIVE'
+        && String(b.connectorId) === String(connectorId)
+        && b.date === date
+        && String(b.bookingId) !== String(editingBookingId)
       );
-      renderBookingSlots(slots || [], taken, preferredKey);
+      renderBookingSlots(slots || [], existingBookings, date);
     } catch (err) {
       wrap.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
     }
   }
 
-  function renderBookingSlots(slots, taken, preferredKey = null) {
+  function renderBookingSlots(slots, existingBookings, date) {
     const wrap = document.getElementById('b-slots-wrap');
     if (!slots.length) {
-      wrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No available slots for this date.</p>';
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No availability window for this date.</p>';
       return;
     }
-    const grid = document.createElement('div');
-    grid.className = 'slot-grid';
-    slots.forEach(slot => {
-      const key = `${fmtTime(slot.startTime)}-${fmtTime(slot.endTime)}`;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'slot-btn';
-      btn.textContent = `${fmtTime(slot.startTime)} – ${fmtTime(slot.endTime)}`;
-      if (taken.has(key)) {
-        btn.classList.add('booked');
-        btn.disabled = true;
-      } else {
-        if (preferredKey === key) {
-          btn.classList.add('selected');
-          selectedBookingSlot = slot;
-          document.getElementById('save-booking-btn').disabled = false;
-        }
-        btn.addEventListener('click', () => {
-          grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          selectedBookingSlot = slot;
-          document.getElementById('save-booking-btn').disabled = false;
-        });
+    const win = slots[0];
+    const n5  = t => (t || '').substring(0, 5);
+    const winStart = n5(win.startTime);
+    const winEnd   = n5(win.endTime);
+    const sorted   = existingBookings.slice().sort((a, b) => n5(a.startTime).localeCompare(n5(b.startTime)));
+
+    let bookedHtml = '';
+    if (sorted.length) {
+      const periods = sorted.map(b => `${n5(b.startTime)}–${n5(b.endTime)}`).join(', ');
+      bookedHtml = `<div style="background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:8px;font-size:12px;color:#92400e">
+        <strong>Already booked:</strong> ${esc(periods)}</div>`;
+    }
+
+    wrap.innerHTML = `
+      <div style="font-size:13px;margin-bottom:10px">
+        <span style="color:var(--color-text-secondary)">Window: </span>
+        <strong>${fmtTime(win.startTime)} – ${fmtTime(win.endTime)}</strong>
+        <span style="color:var(--color-text-muted);font-size:12px;margin-left:8px">· min 20 min · max 40 min</span>
+        ${bookedHtml}
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:120px">
+          <label class="form-label">Start time</label>
+          <input type="time" id="b-start" step="1200"
+                 min="${winStart}" max="${addMinsAdmin(winEnd, -20)}">
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px">
+          <label class="form-label">End time</label>
+          <input type="time" id="b-end" step="1200"
+                 max="${winEnd}" disabled>
+        </div>
+      </div>
+    `;
+
+    const startIn = wrap.querySelector('#b-start');
+    const endIn   = wrap.querySelector('#b-end');
+    const saveBtn = document.getElementById('save-booking-btn');
+
+    startIn.addEventListener('change', function () {
+      const S = this.value;
+      if (!S) { endIn.disabled = true; endIn.value = ''; saveBtn.disabled = true; return; }
+      const clash = sorted.find(b => n5(b.startTime) <= S && n5(b.endTime) > S);
+      if (clash) {
+        showAlert('booking-modal-alert',
+          `${S} falls inside an existing booking (${n5(clash.startTime)}–${n5(clash.endTime)}). Choose a different time.`);
+        this.value = ''; endIn.disabled = true; endIn.value = ''; saveBtn.disabled = true;
+        return;
       }
-      grid.appendChild(btn);
+      clearAlert('booking-modal-alert');
+      const nextBk  = sorted.find(b => n5(b.startTime) > S);
+      const cap40   = addMinsAdmin(S, 40);
+      const natural = nextBk ? n5(nextBk.startTime) : winEnd;
+      const maxEnd  = toMinsAdmin(natural) <= toMinsAdmin(cap40) ? natural : cap40;
+      if (toMinsAdmin(maxEnd) - toMinsAdmin(S) < 20) {
+        showAlert('booking-modal-alert', nextBk
+          ? `Not enough free time from ${S} — next booking at ${n5(nextBk.startTime)}.`
+          : `Not enough available time from ${S}.`);
+        this.value = ''; endIn.disabled = true; endIn.value = ''; saveBtn.disabled = true;
+        return;
+      }
+      endIn.min = addMinsAdmin(S, 20);
+      endIn.max = maxEnd;
+      endIn.value = '';
+      endIn.disabled = false;
+      saveBtn.disabled = true;
     });
-    wrap.innerHTML = '';
-    wrap.appendChild(grid);
+
+    endIn.addEventListener('change', function () {
+      if (!startIn.value || !this.value) { saveBtn.disabled = true; return; }
+      selectedBookingSlot = { startTime: startIn.value + ':00', endTime: this.value + ':00', date };
+      saveBtn.disabled = false;
+    });
   }
 
   document.getElementById('save-booking-btn').addEventListener('click', async function () {

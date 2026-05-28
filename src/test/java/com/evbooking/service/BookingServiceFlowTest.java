@@ -120,20 +120,20 @@ class BookingServiceFlowTest {
     @DisplayName("admin can modify another driver's active booking")
     void adminCanModifyAnyBooking() {
         Fixture f = new Fixture();
-        BookingUpdateRequest req = updateRequest(LocalTime.of(10, 0), LocalTime.of(11, 0));
+        BookingUpdateRequest req = updateRequest(LocalTime.of(10, 0), LocalTime.of(10, 30));
 
         BookingResponse response = f.service.update(2L, req, "admin", true);
 
         assertEquals("maria", response.getUsername());
         assertEquals(LocalTime.of(10, 0), response.getStartTime());
-        assertEquals(LocalTime.of(11, 0), response.getEndTime());
+        assertEquals(LocalTime.of(10, 30), response.getEndTime());
     }
 
     @Test
     @DisplayName("driver cannot modify another driver's active booking")
     void driverCannotModifyAnotherDriversBooking() {
         Fixture f = new Fixture();
-        BookingUpdateRequest req = updateRequest(LocalTime.of(10, 0), LocalTime.of(11, 0));
+        BookingUpdateRequest req = updateRequest(LocalTime.of(10, 0), LocalTime.of(10, 30));
 
         assertThrows(ForbiddenException.class,
             () -> f.service.update(2L, req, "nikos", false));
@@ -145,7 +145,7 @@ class BookingServiceFlowTest {
         req.setConnectorId(connectorId);
         req.setDate(LocalDate.now().plusDays(1));
         req.setStartTime(LocalTime.of(8, 0));
-        req.setEndTime(LocalTime.of(9, 0));
+        req.setEndTime(LocalTime.of(8, 30));
         return req;
     }
 

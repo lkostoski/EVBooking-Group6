@@ -120,7 +120,7 @@
   let currentFilter      = 'all';
   let editingId          = null;
   let editingConnectorId = null;
-  let modifySlot         = null;
+  let modifySlot         = null;  // { startTime, endTime, date }
 
   const modDateInput  = document.getElementById('mod-date');
   const slotsWrap     = document.getElementById('mod-slots-wrap');
@@ -144,69 +144,123 @@
 
   // ── Slot fetching ──────────────────────────────────────────
   async function fetchModSlots(date) {
-    modifySlot = null;
+    modifySlot  = null;
     saveModifyBtn.disabled = true;
-    if (!date || !editingConnectorId) { slotsWrap.innerHTML = ''; return; }
+    slotsWrap.innerHTML = '';
+    if (!date || !editingConnectorId) return;
 
-    slotsWrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading slots…</div>';
+    slotsWrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;color:var(--color-text-muted)"><span class="spinner"></span> Loading…</div>';
 
     try {
       const slots = await apiFetch(`api/connectors/${editingConnectorId}/slots?date=${date}`);
-      const n5 = t => (t || '').substring(0, 5);
-      const takenKeys = new Set(
-        (allBookings || [])
-          .filter(b => b.status === 'ACTIVE' &&
-                       +b.connectorId === +editingConnectorId &&
-                       b.date === date &&
-                       b.bookingId !== editingId)
-          .map(b => n5(b.startTime) + '-' + n5(b.endTime))
-      );
-      renderModSlots(slots || [], takenKeys);
+      renderModSlots(slots || [], date);
     } catch (err) {
       slotsWrap.innerHTML = `<div class="alert alert-danger" style="margin-top:8px">${err.message}</div>`;
     }
   }
 
-  function renderModSlots(slots, takenKeys = new Set()) {
+  function renderModSlots(slots, date) {
     if (!slots.length) {
-      slotsWrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No available slots for this date.</p>';
+      slotsWrap.innerHTML = '<p style="font-size:13px;color:var(--color-text-muted);padding:8px 0">Not available for this date.</p>';
       return;
     }
 
-    const n5 = t => (t || '').substring(0, 5);
-    const grid = document.createElement('div');
-    grid.className = 'slot-grid';
-    grid.style.marginTop = '10px';
+    const win      = slots[0];
+    const n5       = t => (t || '').substring(0, 5);
+    const winStart = n5(win.startTime);
+    const winEnd   = n5(win.endTime);
 
-    const isToday = modDateInput.value === todayISO();
-    slots.forEach(slot => {
-      const taken   = takenKeys.has(n5(slot.startTime) + '-' + n5(slot.endTime));
-      const pastSlot = isToday && new Date(`${modDateInput.value}T${slot.startTime}`) <= new Date();
-      const unavailable = taken || pastSlot;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'slot-btn';
-      if (unavailable) btn.classList.add('booked');
-      btn.textContent = fmtTime(slot.startTime) + ' – ' + fmtTime(slot.endTime);
-      btn.disabled = unavailable;
-      if (!unavailable) {
-        btn.addEventListener('click', () => {
-          grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          modifySlot = slot;
-          saveModifyBtn.disabled = false;
-        });
+    const sortedOthers = (allBookings || [])
+      .filter(b =>
+        b.status === 'ACTIVE' &&
+        +b.connectorId === +editingConnectorId &&
+        b.date === date &&
+        b.bookingId !== editingId
+      )
+      .sort((a, b) => n5(a.startTime).localeCompare(n5(b.startTime)));
+
+    let bookedHtml = '';
+    if (sortedOthers.length) {
+      const periods = sortedOthers.map(b => `${n5(b.startTime)}–${n5(b.endTime)}`).join(', ');
+      bookedHtml = `
+        <div style="background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:8px;font-size:12px;color:#92400e">
+          <strong>Already booked:</strong> ${esc(periods)}
+        </div>`;
+    }
+
+    function addMinsLocal(hhmm, mins) {
+      const [h, m] = hhmm.split(':').map(Number);
+      const total  = h * 60 + m + mins;
+      if (total < 0) return '00:00';
+      return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    }
+    function toMinsLocal(hhmm) {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    slotsWrap.innerHTML = `
+      <div style="font-size:13px;margin-bottom:10px">
+        <span style="color:var(--color-text-secondary)">Window: </span>
+        <strong>${fmtTime(win.startTime)} – ${fmtTime(win.endTime)}</strong>
+        <span style="color:var(--color-text-muted);font-size:12px;margin-left:8px">· min 20 min · max 40 min</span>
+        ${bookedHtml}
+      </div>
+      <div class="input-row">
+        <div class="form-group">
+          <label class="form-label">Start time</label>
+          <input type="time" id="mod-start" step="1200"
+                 min="${winStart}" max="${addMinsLocal(winEnd, -20)}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End time</label>
+          <input type="time" id="mod-end" step="1200"
+                 max="${winEnd}" disabled>
+        </div>
+      </div>
+    `;
+
+    const startIn = slotsWrap.querySelector('#mod-start');
+    const endIn   = slotsWrap.querySelector('#mod-end');
+
+    startIn.addEventListener('change', function () {
+      const S = this.value;
+      if (!S) { endIn.disabled = true; endIn.value = ''; saveModifyBtn.disabled = true; return; }
+
+      const clash = sortedOthers.find(b => n5(b.startTime) <= S && n5(b.endTime) > S);
+      if (clash) {
+        showAlert('modify-alert',
+          `${S} falls inside an existing booking (${n5(clash.startTime)}–${n5(clash.endTime)}). Choose a different time.`);
+        this.value = ''; endIn.disabled = true; endIn.value = ''; saveModifyBtn.disabled = true;
+        return;
       }
-      grid.appendChild(btn);
+      clearAlert('modify-alert');
+
+      const nextBk  = sortedOthers.find(b => n5(b.startTime) > S);
+      const cap40   = addMinsLocal(S, 40);
+      const natural = nextBk ? n5(nextBk.startTime) : winEnd;
+      const maxEnd  = toMinsLocal(natural) <= toMinsLocal(cap40) ? natural : cap40;
+
+      if (toMinsLocal(maxEnd) - toMinsLocal(S) < 20) {
+        showAlert('modify-alert', nextBk
+          ? `Not enough free time from ${S} — next booking at ${n5(nextBk.startTime)}.`
+          : `Not enough available time from ${S}.`);
+        this.value = ''; endIn.disabled = true; endIn.value = ''; saveModifyBtn.disabled = true;
+        return;
+      }
+
+      endIn.min      = addMinsLocal(S, 20);
+      endIn.max      = maxEnd;
+      endIn.value    = '';
+      endIn.disabled = false;
+      saveModifyBtn.disabled = true;
     });
 
-    slotsWrap.innerHTML = '';
-    const label = document.createElement('div');
-    label.className = 'form-label';
-    label.style.marginBottom = '6px';
-    label.textContent = 'Select a slot';
-    slotsWrap.appendChild(label);
-    slotsWrap.appendChild(grid);
+    endIn.addEventListener('change', function () {
+      if (!startIn.value || !this.value) { saveModifyBtn.disabled = true; return; }
+      modifySlot = { startTime: startIn.value + ':00', endTime: this.value + ':00', date };
+      saveModifyBtn.disabled = false;
+    });
   }
 
   modDateInput.addEventListener('change', () => fetchModSlots(modDateInput.value));
@@ -362,7 +416,7 @@
   saveModifyBtn.addEventListener('click', async function () {
     clearAlert('modify-alert');
     if (!modifySlot) {
-      showAlert('modify-alert', 'Please select a time slot.');
+      showAlert('modify-alert', 'Please select a start and end time.');
       return;
     }
 

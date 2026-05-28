@@ -125,8 +125,8 @@ public class BookingDAO {
                 throw new NotFoundException("Connector not found");
             }
 
-            // 2. Booking must fall within a published available slot for this
-            //    connector/date.
+            // 2. Booking must fall within a published availability window for this
+            //    connector/date (window.start <= booking.start AND window.end >= booking.end).
             Long slotMatches = em.createQuery(
                 "SELECT COUNT(s) FROM AvailableSlot s " +
                 "WHERE s.connector.connectorId = :connectorId " +
@@ -141,7 +141,7 @@ public class BookingDAO {
                 .getSingleResult();
             if (slotMatches == 0) {
                 throw new BadRequestException(
-                    "Requested time does not fall within a published available slot");
+                    "Requested time is outside the availability window for this connector");
             }
 
             // 3. No other ACTIVE booking on this connector may overlap.
@@ -239,6 +239,24 @@ public class BookingDAO {
             // Lock the booking owner's user row so that concurrent updates and
             // creates for this driver across any connector serialise here.
             em.find(User.class, booking.getUser().getUsername(), LockModeType.PESSIMISTIC_WRITE);
+
+            // Verify the new time falls within a published availability window.
+            Long slotMatchesUpd = em.createQuery(
+                "SELECT COUNT(s) FROM AvailableSlot s " +
+                "WHERE s.connector.connectorId = :connectorId " +
+                "AND s.date = :date " +
+                "AND s.startTime <= :startTime " +
+                "AND s.endTime   >= :endTime",
+                Long.class)
+                .setParameter("connectorId", booking.getConnector().getConnectorId())
+                .setParameter("date", newDate)
+                .setParameter("startTime", newStart)
+                .setParameter("endTime", newEnd)
+                .getSingleResult();
+            if (slotMatchesUpd == 0) {
+                throw new BadRequestException(
+                    "Requested time is outside the availability window for this connector");
+            }
 
             Long connectorOverlap = em.createQuery(
                 "SELECT COUNT(b) FROM Booking b " +

@@ -100,7 +100,7 @@
         <div class="form-group">
           <div class="step-indicator">
             <span class="step-number">3</span>
-            <span class="step-label">Choose a time slot</span>
+            <span class="step-label">Choose your booking time</span>
           </div>
           <div id="slots-container">
             <p style="color:var(--color-text-muted);font-size:13px">Select a connector and date first.</p>
@@ -176,7 +176,7 @@
 
   let station      = null;
   let selectedConn = null;
-  let selectedSlot = null;
+  let selectedSlot = null;  // { startTime, endTime, date }
 
   // ── Modal helpers ──────────────────────────────────────────
   const modal = document.getElementById('confirm-modal');
@@ -280,12 +280,13 @@
     }
   }
 
-  // ── Load slots ─────────────────────────────────────────────
+  // ── Load availability window ───────────────────────────────
   document.getElementById('slot-date').addEventListener('change', async function () {
     if (!selectedConn) return;
     const date = this.value;
     if (!date) return;
 
+    selectedSlot = null;
     const container = document.getElementById('slots-container');
     container.innerHTML = '<div class="spinner-center"><span class="spinner"></span></div>';
 
@@ -296,53 +297,130 @@
       ]);
 
       if (!slots.length) {
-        container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No slots available for this date.</p>';
+        container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">Not available for this date.</p>';
         return;
       }
 
-      const n5 = t => (t || '').substring(0, 5);
-      const takenKeys = new Set(
-        (bookings || [])
-          .filter(b => b.status === 'ACTIVE' &&
-                       +b.connectorId === +selectedConn.id &&
-                       b.date === date)
-          .map(b => n5(b.startTime) + '-' + n5(b.endTime))
+      const win = slots[0];
+      const n5  = t => (t || '').substring(0, 5);
+      const winStart = n5(win.startTime);
+      const winEnd   = n5(win.endTime);
+
+      const activeBookings = (bookings || []).filter(b =>
+        b.status === 'ACTIVE' &&
+        +b.connectorId === +selectedConn.id &&
+        b.date === date
       );
-      const isToday = date === todayISO();
 
-      const grid = document.createElement('div');
-      grid.className = 'slots-grid';
+      // Sort bookings by start so we can find the next one after any chosen start
+      const sortedBookings = activeBookings
+        .slice()
+        .sort((a, b) => n5(a.startTime).localeCompare(n5(b.startTime)));
 
-      slots.forEach(s => {
-        const taken      = takenKeys.has(n5(s.startTime) + '-' + n5(s.endTime));
-        const pastSlot   = isToday && new Date(`${date}T${s.startTime}`) <= new Date();
-        const unavailable = taken || pastSlot;
+      let bookedHtml = '';
+      if (sortedBookings.length) {
+        const periods = sortedBookings.map(b => `${n5(b.startTime)}–${n5(b.endTime)}`).join(', ');
+        bookedHtml = `
+          <div style="background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:8px;font-size:12px;color:#92400e">
+            <strong>Already booked:</strong> ${esc(periods)}
+          </div>`;
+      }
 
-        const btn = document.createElement('button');
-        btn.className = 'slot-btn';
-        if (unavailable) btn.classList.add('booked');
-        btn.dataset.slotId = s.slotId;
-        btn.dataset.start  = s.startTime;
-        btn.dataset.end    = s.endTime;
-        btn.innerHTML = `${fmtTime(s.startTime)}<br>${fmtTime(s.endTime)}`;
-        btn.disabled = unavailable;
-        if (!unavailable) {
-          btn.addEventListener('click', () => {
-            grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedSlot = { slotId: +s.slotId, startTime: s.startTime, endTime: s.endTime, date };
-            openConfirmModal();
-          });
+      container.innerHTML = `
+        <div style="font-size:13px;margin-bottom:12px">
+          <span style="color:var(--color-text-secondary)">Window: </span>
+          <strong>${fmtTime(win.startTime)} – ${fmtTime(win.endTime)}</strong>
+          <span style="color:var(--color-text-muted);font-size:12px;margin-left:8px">· min 20 min · max 40 min</span>
+          ${bookedHtml}
+        </div>
+        <div class="input-row">
+          <div class="form-group">
+            <label class="form-label">Start time</label>
+            <input type="time" id="booking-start" step="1200"
+                   min="${winStart}" max="${addMins(winEnd, -20)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End time</label>
+            <input type="time" id="booking-end" step="1200"
+                   max="${winEnd}" disabled>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="review-btn"
+                style="margin-top:6px;width:100%" disabled>
+          Review Booking
+        </button>
+      `;
+
+      const startInput = container.querySelector('#booking-start');
+      const endInput   = container.querySelector('#booking-end');
+      const reviewBtn  = container.querySelector('#review-btn');
+
+      startInput.addEventListener('change', function () {
+        const S = this.value;
+        if (!S) {
+          endInput.disabled = true; endInput.value = ''; reviewBtn.disabled = true;
+          return;
         }
-        grid.appendChild(btn);
+
+        // Block starts that fall inside an existing booking
+        const clash = sortedBookings.find(b => n5(b.startTime) <= S && n5(b.endTime) > S);
+        if (clash) {
+          showAlert('alert-box',
+            `${S} falls inside an existing booking (${n5(clash.startTime)}–${n5(clash.endTime)}). Please choose a different start time.`);
+          this.value = ''; endInput.disabled = true; endInput.value = ''; reviewBtn.disabled = true;
+          return;
+        }
+        clearAlert('alert-box');
+
+        // End-time ceiling: the earlier of (next booking's start) or (start + 8 h) or window end
+        const nextBk  = sortedBookings.find(b => n5(b.startTime) > S);
+        const cap40   = addMins(S, 40);
+        const natural = nextBk ? n5(nextBk.startTime) : winEnd;
+        const maxEnd  = toMins(natural) <= toMins(cap40) ? natural : cap40;
+
+        if (toMins(maxEnd) - toMins(S) < 20) {
+          showAlert('alert-box', nextBk
+            ? `Not enough free time from ${S} — next booking starts at ${n5(nextBk.startTime)}.`
+            : `Not enough available time from ${S}.`);
+          this.value = ''; endInput.disabled = true; endInput.value = ''; reviewBtn.disabled = true;
+          return;
+        }
+
+        endInput.min      = addMins(S, 20);
+        endInput.max      = maxEnd;
+        endInput.value    = '';
+        endInput.disabled = false;
+        reviewBtn.disabled = true;
       });
 
-      container.innerHTML = '';
-      container.appendChild(grid);
+      endInput.addEventListener('change', function () {
+        reviewBtn.disabled = !startInput.value || !this.value;
+      });
+
+      reviewBtn.addEventListener('click', function () {
+        const sv = startInput.value, ev = endInput.value;
+        if (!sv || !ev) return;
+        clearAlert('alert-box');
+        selectedSlot = { startTime: sv + ':00', endTime: ev + ':00', date };
+        openConfirmModal();
+      });
+
     } catch (err) {
       container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
     }
   });
+
+  function addMins(hhmm, mins) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const total  = h * 60 + m + mins;
+    if (total < 0) return '00:00';
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+
+  function toMins(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
 
   // ── Confirm modal ──────────────────────────────────────────
   function openConfirmModal() {

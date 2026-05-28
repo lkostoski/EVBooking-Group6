@@ -30,7 +30,7 @@ class BookingRuleContractTest {
 
         assertTrue(dao.contains("slotMatches"));
         assertTrue(dao.contains("AvailableSlot"));
-        assertTrue(dao.contains("Requested time does not fall within a published available slot"));
+        assertTrue(dao.contains("Requested time is outside the availability window for this connector"));
     }
 
     @Test

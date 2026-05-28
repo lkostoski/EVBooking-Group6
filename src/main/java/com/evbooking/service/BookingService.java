@@ -3,6 +3,7 @@ package com.evbooking.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -126,6 +127,13 @@ public class BookingService {
         }
         if (!start.isBefore(end)) {
             throw new BadRequestException("startTime must be before endTime");
+        }
+        long minutes = ChronoUnit.MINUTES.between(start, end);
+        if (minutes < 20) {
+            throw new BadRequestException("Minimum booking duration is 20 minutes");
+        }
+        if (minutes > 40) {
+            throw new BadRequestException("Maximum booking duration is 40 minutes");
         }
     }
 
