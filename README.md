@@ -192,9 +192,11 @@ run.sh / run.bat       Local launchers (gitignored — copy from .example)
 
 - **Backend** — Java 11, Jersey 3 (JAX-RS), Hibernate 6 / JPA, PostgreSQL, HikariCP
 - **Frontend** — Vanilla JS (ES modules), Google Maps JavaScript API, custom CSS
-- **Auth** — Server-signed HMAC-SHA256 session cookie + BCrypt password hashing,
-  optional Google Sign-In (OAuth 2.0 ID token verification)
-- **Tests** — JUnit 5 (21 tests cover token signing, validation rules, exception mapping)
+- **Auth** — Database-backed session tokens (32-byte `SecureRandom`, `HttpOnly`
+  cookie) + BCrypt password hashing, optional Google Sign-In (OAuth 2.0 ID
+  token verification)
+- **Tests** — JUnit 5 (54 tests across 14 classes cover validation rules,
+  exception mapping, security annotations, filters, and booking-rule contracts)
 - **Deployment** — Heroku-style PaaS (webapp-runner / embedded Tomcat 10)
 
 ---
